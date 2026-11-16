@@ -336,23 +336,150 @@ These are **phrase templates**, not assertions that a given formulation has a pa
 
 ---
 
-## C. Aquatic Environmental Hazards
+## C. Environmental Hazards
 
-### Classified
+These are **draft export phrases**. Use exclusions only where the applicable CLP cut-off or classification limit, M-factor, substance-specific evidence, and exceptions have been checked. Below a mixture-classification limit does not necessarily mean a substance is irrelevant for SDS Section 3 or other obligations.
 
-- Classified as Aquatic Chronic Cat. 3 H412 (See summation calculation below).
-- Classified as Aquatic Chronic Cat. 2 H411 (See summation calculation below).
-- Classified as Aquatic Chronic Cat. 1 H410 (See summation calculation below).
+### 1. Aquatic Acute Toxicity
+
+**Classified**
+
 - Classified as Aquatic Acute Cat. 1 H400 (See summation calculation below).
 
-### Not classified
+**Not classified**
 
-- Not classified as Aquatic Chronic Cat. 3 H412 (See summation calculation below).
-- Not classified as Aquatic Chronic Cat. 2 H411 (See summation calculation below).
-- Not classified as Aquatic Chronic Cat. 1 H410 (See summation calculation below).
-- Not classified as Aquatic Acute Cat. 1 H400 (See summation calculation below).
+- Not classified for Aquatic Acute toxicity. See summation calculation below.
 
-**Implementation note:** This section captures the aquatic phrases discussed so far. Ingredient exclusion phrases for general 1%, 0.1% and M-factor-adjusted cut-offs remain to be agreed. The actual summation must be shown independently; a statement should not imply a particular ingredient alone caused the mixture classification.
+**Below cut-off — Acute Category 1 (M = 1)**
+
+- Not deemed a relevant ingredient for Aquatic Acute Cat. 1 calculation due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.1.3.1).
+
+**Below M-factor-adjusted cut-off — Acute Category 1**
+
+- Not deemed a relevant ingredient for Aquatic Acute Cat. 1 calculation due to low inclusion below the M-factor-adjusted cut-off (0.1% / M) (CLP Annex I, Section 4.1.3.1).
+
+### 2. Aquatic Chronic Toxicity
+
+**Classified**
+
+- Classified as Aquatic Chronic Cat. 1 H410 (See summation calculation below).
+- Classified as Aquatic Chronic Cat. 2 H411 (See summation calculation below).
+- Classified as Aquatic Chronic Cat. 3 H412 (See summation calculation below).
+- Classified as Aquatic Chronic Cat. 4 H413 (See summation calculation below).
+
+**Not classified**
+
+- Not classified for Aquatic Chronic toxicity. See summation calculation below.
+
+**Below cut-off — Chronic Category 1 (M = 1)**
+
+- Not deemed a relevant ingredient for Aquatic Chronic Cat. 1 calculation due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.1.3.1).
+
+**Below M-factor-adjusted cut-off — Chronic Category 1**
+
+- Not deemed a relevant ingredient for Aquatic Chronic Cat. 1 calculation due to low inclusion below the M-factor-adjusted cut-off (0.1% / M) (CLP Annex I, Section 4.1.3.1).
+
+**Below cut-off — Chronic Categories 2–4**
+
+- Not deemed a relevant ingredient for Aquatic Chronic Cat. 2–4 calculation due to low inclusion (<1%) within the mixture (CLP Annex I, Section 4.1.3.1).
+
+### 3. Aquatic Toxicity — Further Assessment
+
+**Ingredient included**
+
+- Ingredient considered in the aquatic classification assessment. See summation calculation below (CLP Annex I, Section 4.1.3.5.5).
+
+**M-factor applied**
+
+- Aquatic classification assessed using the applicable M-factor. See summation calculation below (CLP Annex I, Section 4.1.3.5.5.5).
+
+**Missing M-factor**
+
+- Aquatic classification cannot be fully confirmed due to missing M-factor information. Further assessment required (CLP Annex I, Section 4.1.3.5.5.5).
+
+**Below summation threshold**
+
+- Not classified for aquatic toxicity. Relevant ingredient contributions do not meet the applicable summation threshold. See summation calculation below (CLP Annex I, Tables 4.1.1 and 4.1.2).
+
+**Unknown aquatic toxicity**
+
+- Aquatic toxicity information is incomplete for one or more ingredients. Further assessment required (CLP Annex I, Section 4.1.3.6).
+
+### 4. Endocrine Disruption — Environment
+
+**Classified**
+
+- Classified as Endocrine Disruption (Environment) Cat. 1 EUH430 (CLP Annex I, Section 4.2.3.1).
+- Classified as Endocrine Disruption (Environment) Cat. 2 EUH431 (CLP Annex I, Section 4.2.3.1).
+
+**Not classified**
+
+- Not classified for endocrine disruption (environment). Substance concentration is below the applicable classification limit (CLP Annex I, Table 4.2.2).
+
+**Below classification limit — Category 1**
+
+- Does not trigger Endocrine Disruption (Environment) Cat. 1 classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Table 4.2.2).
+
+**Below classification limit — Category 2**
+
+- Does not trigger Endocrine Disruption (Environment) Cat. 2 classification due to low inclusion (<1%) within the mixture (CLP Annex I, Table 4.2.2).
+
+### 5. Persistent, Bioaccumulative and Toxic (PBT / vPvB)
+
+**Classified**
+
+- Classified as PBT EUH440 (CLP Annex I, Section 4.3.3.1).
+- Classified as vPvB EUH441 (CLP Annex I, Section 4.3.3.1).
+
+**Not classified**
+
+- Not classified as PBT. No ingredient meets the applicable 0.1% classification threshold (CLP Annex I, Section 4.3.3.1).
+- Not classified as vPvB. No ingredient meets the applicable 0.1% classification threshold (CLP Annex I, Section 4.3.3.1).
+
+**Below classification limit**
+
+- Ingredient does not trigger PBT classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.3.3.1).
+- Ingredient does not trigger vPvB classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.3.3.1).
+
+### 6. Persistent, Mobile and Toxic (PMT / vPvM)
+
+**Classified**
+
+- Classified as PMT EUH450 (CLP Annex I, Section 4.4.3.1).
+- Classified as vPvM EUH451 (CLP Annex I, Section 4.4.3.1).
+
+**Not classified**
+
+- Not classified as PMT. No ingredient meets the applicable 0.1% classification threshold (CLP Annex I, Section 4.4.3.1).
+- Not classified as vPvM. No ingredient meets the applicable 0.1% classification threshold (CLP Annex I, Section 4.4.3.1).
+
+**Below classification limit**
+
+- Ingredient does not trigger PMT classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.4.3.1).
+- Ingredient does not trigger vPvM classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 4.4.3.1).
+
+### 7. Hazardous to the Ozone Layer
+
+**Classified**
+
+- Classified as Hazardous to the Ozone Layer Cat. 1 H420 (CLP Annex I, Section 5.1.3.1).
+
+**Not classified**
+
+- Not classified as hazardous to the ozone layer. No ingredient meets the applicable classification threshold (CLP Annex I, Table 5.1).
+
+**Below classification limit**
+
+- Ingredient does not trigger ozone layer hazard classification due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 5.1.3.1, Table 5.1).
+
+**Environmental implementation notes**
+
+- For Aquatic Acute 1 / Chronic 1, determine the *applicable* M-factor and use the adjusted cut-off (0.1% / M). Do not use the unadjusted 0.1% wording when M > 1.
+- Aquatic Chronic 2–4 usually use a 1% relevance cut-off, but lower concentrations may still be relevant where supported by evidence (CLP Annex I, Section 4.1.3.1).
+- “Below classification limit” for endocrine disruption, PBT, vPvB, PMT, vPvM and ozone is not the same as the aquatic *relevant-ingredient cut-off*. It describes a mixture classification trigger under the stated method, not permission to omit SDS disclosures.
+- Category 2 endocrine-disrupting substances at 0.1% or more can trigger SDS-on-request obligations even when below the 1% mixture classification limit (Tables 4.2.2 and 3.11.2, note 1).
+- For the newer environmental hazard classes, check the mixture transition provisions and whether whole-mixture data or other evidence change the classification.
+- These phrases have not yet been connected to automatic exports. The engine's actual results and the underlying calculation/evidence take precedence.
 
 ---
 
