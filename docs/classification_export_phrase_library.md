@@ -8,26 +8,114 @@ These are **phrase templates**, not assertions that a given formulation has a pa
 
 ## A. Acute Toxicity
 
-### Classified (inhalation examples)
+### 1. Acute Toxicity — Oral
 
-- Classified as Acute Toxicity Cat. 1 H330. See the ATE classification.
-- Classified as Acute Toxicity Cat. 2 H330. See the ATE classification.
-- Classified as Acute Toxicity Cat. 3 H331. See the ATE classification.
-- Classified as Acute Toxicity Cat. 4 H332. See the ATE classification.
+**Classified**
 
-### Not classified
+- Classified as Acute Toxicity Cat. 1 H300. See the oral ATE calculation.
+- Classified as Acute Toxicity Cat. 2 H300. See the oral ATE calculation.
+- Classified as Acute Toxicity Cat. 3 H301. See the oral ATE calculation.
+- Classified as Acute Toxicity Cat. 4 H302. See the oral ATE calculation.
 
-- Not classified as Acute Toxicity Cat. 4 H332. See the ATE calculation.
+**Not classified**
 
-### Ingredient below 1% (Category 4)
+- Not classified as Acute Toxicity Cat. 4 H302. See the oral ATE calculation.
 
-- Not deemed a relevant ingredient for Acute Tox. calculation due to low inclusion (<1%) within the mixture (CLP Annex I, Section 3.1.3.3).
+### 2. Acute Toxicity — Dermal
 
-### Ingredient below 0.1% (Categories 1–3)
+**Classified**
 
-- Not deemed a relevant ingredient for Acute Tox. Category 1–3 calculation due to low inclusion (<0.1%) within the mixture (CLP Annex I, Section 1.1.2.2.2, Table 1.1).
+- Classified as Acute Toxicity Cat. 1 H310. See the dermal ATE calculation.
+- Classified as Acute Toxicity Cat. 2 H310. See the dermal ATE calculation.
+- Classified as Acute Toxicity Cat. 3 H311. See the dermal ATE calculation.
+- Classified as Acute Toxicity Cat. 4 H312. See the dermal ATE calculation.
 
-**Implementation note:** These H330/H331/H332 examples are for inhalation. Oral and dermal assessments must use the route's actual mixture H-statement. Below-cut-off wording must not be used if the applicable exception requires consideration of the ingredient.
+**Not classified**
+
+- Not classified as Acute Toxicity Cat. 4 H312. See the dermal ATE calculation.
+
+### 3. Acute Toxicity — Inhalation
+
+**Classified**
+
+- Classified as Acute Toxicity Cat. 1 H330. See the inhalation ATE calculation.
+- Classified as Acute Toxicity Cat. 2 H330. See the inhalation ATE calculation.
+- Classified as Acute Toxicity Cat. 3 H331. See the inhalation ATE calculation.
+- Classified as Acute Toxicity Cat. 4 H332. See the inhalation ATE calculation.
+
+**Not classified**
+
+- Not classified as Acute Toxicity Cat. 4 H332. See the inhalation ATE calculation.
+
+### 4. Ingredient Exclusion — Below Cut-off
+
+**Acute Toxicity Categories 1–3**
+
+- Not deemed a relevant ingredient for Acute Toxicity Cat. 1–3 calculation due to low inclusion (<0.1%) within the mixture (CLP Annex I, Table 1.1 and Section 3.1.3.3).
+
+**Acute Toxicity Category 4**
+
+- Not deemed a relevant ingredient for Acute Toxicity Cat. 4 calculation due to low inclusion (<1%) within the mixture (CLP Annex I, Section 3.1.3.3).
+
+### 5. Ingredient Included in ATE Calculation
+
+**Included — Mixture classified**
+
+- Ingredient included in the ATE calculation. Mixture classified as Acute Toxicity Cat. [Category] [H-code]. See ATE calculation below.
+
+**Included — Mixture not classified**
+
+- Ingredient included in the ATE calculation. Mixture does not meet the acute toxicity classification criteria. See ATE calculation below.
+
+### 6. ATE Conversion
+
+**Category converted to ATE**
+
+- Acute Toxicity category converted to an ATE value in accordance with CLP Annex I, Table 3.1.2. See ATE calculation below.
+
+**Substance-specific ATE**
+
+- Classification calculated using the entered substance-specific ATE value. See ATE calculation below (CLP Annex I, Section 3.1.3.6).
+
+### 7. Unknown Acute Toxicity
+
+**Unknown toxicity data**
+
+- Acute toxicity data unavailable for this ingredient. See unknown toxicity assessment (CLP Annex I, Section 3.1.3.6.2.2).
+
+**Unknown toxicity ≤10%**
+
+- Standard ATE calculation applied. Ingredients with unknown acute toxicity do not exceed 10% of the mixture (CLP Annex I, Section 3.1.3.6.2.3).
+
+**Unknown toxicity >10%**
+
+- Modified ATE calculation applied due to ingredients with unknown acute toxicity exceeding 10% of the mixture (CLP Annex I, Section 3.1.3.6.2.3).
+
+### 8. Further Review Required
+
+**Missing ATE information**
+
+- Acute Toxicity classification cannot be confirmed due to insufficient ATE information. Further assessment required.
+
+**Conflicting classification data**
+
+- Entered Acute Toxicity category does not match the supplied ATE value. Classification requires review.
+
+**Inhalation exposure form**
+
+- Inhalation ATE classification requires confirmation of exposure form (gas, vapour or dust/mist).
+
+**Route-specific data**
+
+- Acute toxicity information is unavailable for this exposure route. Further assessment may be required (CLP Annex I, Section 3.1.3.6.2.1).
+
+**Implementation notes**
+
+- The inhalation phrases apply to gas, vapour and dust/mist as appropriate; the actual ATE calculation must identify the form and units.
+- Choose a route-specific phrase only when the calculation establishes that route's result. “Not classified as Cat. 4” is for a route with no acute-toxicity classification, not for a more severe category.
+- The 0.1% / 1% exclusions are conditional: do not use an exclusion phrase when evidence or an applicable exception requires consideration below the generic cut-off.
+- Unknown acute toxicity must be assessed by route; the 10% comparison applies to the relevant **combined** unknown fraction, not an individual ingredient's concentration.
+- These are proposed explanations only; the existing classification engine and calculation trail remain the source of the numerical result.
 
 ---
 
