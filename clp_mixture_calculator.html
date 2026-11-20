@@ -2297,9 +2297,11 @@ function suggestSdsGrouping(tabs){
   const list=(Array.isArray(m.ingredients)?m.ingredients:[]).filter(i=>i&&
    (String(i.cas||i.name||"").trim()||String(i.pct??"").trim()));
   const concentrations=list.map(i=>CLP.num(i.pct)),total=concentrations.reduce((a,b)=>a+b,0);
+  // Compare recorded percentages as-is. Never normalise them to 100% or
+  // infer that the unentered remainder is water or non-hazardous.
   if(!list.length||list.some((i,k)=>!id(i)||!Number.isFinite(concentrations[k])||
-     concentrations[k]<0||concentrations[k]>100)||Math.abs(total-100)>0.5){
-   excluded.push({id:t.id,title,reason:"Ingredient identity/percentages incomplete or total outside 99.5–100.5%."});
+     concentrations[k]<0||concentrations[k]>100)||!(total>0)||total>100+1e-8){
+   excluded.push({id:t.id,title,reason:"Enter a positive known percentage with an ingredient identity for each listed row; totals above 100% are invalid. Totals below 100% ARE supported."});
    return;
   }
   let r;try{r=CLP.classify(m);}catch(e){
@@ -2311,7 +2313,9 @@ function suggestSdsGrouping(tabs){
   const physical=[m.flashPoint,m.ibp,m.viscosity40,m.pH,!!m.pHReserveOk];
   const groupKey=sig({state,cls,roster,manual:m.manual||[]});
   const exactKey=sig({state,ingredients,physical,manual:m.manual||[]});
-  const v={id:t.id,title,m,r,cls,exactKey,nameBased:ingredients.some(i=>i.identity.startsWith("NAME:"))};
+  const v={id:t.id,title,m,r,cls,exactKey,enteredTotal:total,
+   unentered:Math.max(0,100-total),
+   nameBased:ingredients.some(i=>i.identity.startsWith("NAME:"))};
   valid.push(v);
   if(!buckets.has(groupKey))buckets.set(groupKey,[]);
   buckets.get(groupKey).push(v);
@@ -2322,6 +2326,8 @@ function suggestSdsGrouping(tabs){
  for(const members of buckets.values()){
   if(members.length<2)continue;
   const same=members.every(m=>m.exactKey===members[0].exactKey),warnings=[];
+  if(members.some(m=>m.unentered>1e-8))
+   warnings.push("PARTIAL FORMULATION: the unentered balance (100% minus the recorded ingredient percentages) is unknown, not assumed to be water or safe. The calculated CLP outcomes reflect only entered information and may change when remaining ingredients are identified. Do not treat this as a validated full-mixture classification or a shareable SDS.");
   if(members.some(m=>m.nameBased))warnings.push("Some ingredient identities are name-only: verify CAS/EC identities and supplier specifications.");
   if(members.some(m=>m.r.warnings.length||m.r.incomplete.length||m.r.nodata.length))
    warnings.push("At least one product has missing data, classification warnings or incomplete hazards.");
@@ -2332,7 +2338,10 @@ function suggestSdsGrouping(tabs){
   if(new Set(members.map(m=>m.r.sds.length)).size>1)
    warnings.push("SDS/Section 3 disclosure triggers differ.");
   if(!same)warnings.push("Concentration/physical ranges differ: validate worst-case hazards and Section 3 disclosures.");
-  groups.push({kind:same?"matching":"family",members:members.map(m=>({id:m.id,title:m.title})),warnings});
+  groups.push({kind:same?(members.some(m=>m.unentered>1e-8)?"partial":"matching"):"family",
+   partial:members.some(m=>m.unentered>1e-8),
+   members:members.map(m=>({id:m.id,title:m.title,enteredTotal:m.enteredTotal,unentered:m.unentered})),
+   warnings});
  }
  groups.sort((a,b)=>a.kind.localeCompare(b.kind)||a.members[0].title.localeCompare(b.members[0].title));
  const used=new Set(groups.flatMap(g=>g.members.map(m=>m.id)));
@@ -2488,14 +2497,20 @@ $("workspace-duplicate").addEventListener("click",()=>addWorkspace(true));
 function renderSdsGrouping(){
  const r=suggestSdsGrouping(workspaceSnapshot().tabs),box=$("sds-grouping-results");
  let text='<h3>SDS grouping candidates · '+r.checked+' formulation(s) checked</h3>'+
-  '<p><strong>Not SDS approval.</strong> Under EU REACH Annex II, one SDS may cover several mixtures only when its information fulfils the requirements for each mixture. CLP classification alone is not sufficient. Verify all 16 sections, identity and ranges, Section 3 disclosures, uses, physical data, PPE, transport, supplier details, UFI/poison-centre and language requirements.</p>';
- if(!r.groups.length)text+='<p><b>No composition-and-classification candidates found.</b> Add two or more complete formulations or verify ingredient identifiers and percentages.</p>';
+  '<p><strong>Not SDS approval.</strong> Comparisons accept recorded ingredients below 100% without filling the remainder. Missing composition can change both classification and SDS content; the displayed CLP outcomes are only a screen of entered data. Under EU REACH Annex II, one SDS may cover several mixtures only when its information fulfils the requirements for each mixture. CLP classification alone is not sufficient. Verify all 16 sections, identity and ranges, Section 3 disclosures, uses, physical data, PPE, transport, supplier details, UFI/poison-centre and language requirements.</p>';
+ if(!r.groups.length)text+='<p><b>No composition-and-classification candidates found.</b> Add two or more formulations (partial percentages are supported) or verify ingredient identifiers and percentages.</p>';
  r.groups.forEach(g=>{
   text+='<div class="sds-family"><h4>'+
-   (g.kind==="matching"?"Matching formulation and classification":"Related formulation family — review required")+
-   '</h4><p>'+g.members.map(m=>'<strong>'+esc(m.title)+'</strong>').join(' &middot; ')+'</p>'+
+   (g.kind==="matching"?"Matching full entered formulations and classification":
+    g.kind==="partial"?"Matching entered portion only — partial formulation":
+    g.partial?"Related entered portions — partial formulation; review required":
+    "Related formulation family — review required")+
+   '</h4><p>'+g.members.map(m=>'<strong>'+esc(m.title)+'</strong>'+
+    ' — '+esc(CLP.fmt(m.enteredTotal))+'% entered'+
+    (m.unentered>1e-8?', '+esc(CLP.fmt(m.unentered))+'% not entered':'')).join(' &middot; ')+'</p>'+
    (g.kind==="matching"?'<p>Same entered ingredient identities, concentrations, hazard inputs, physical inputs and calculated CLP classifications.</p>':
-    '<p>Same ingredient identities, hazard inputs and calculated CLP classifications, but some concentrations or physical properties differ. Verify ranges and worst-case conditions.</p>')+
+    g.kind==="partial"?'<p>Only the entered portions match. The unentered portion may differ between products and may alter their CLP classifications, so this is not confirmation of a common complete formulation.</p>':
+    '<p>Same entered ingredient identities, hazard inputs and currently calculated CLP outcomes, but recorded concentrations or physical properties differ. Verify the unentered composition, ranges and worst-case conditions.</p>')+
    '<p class="sds-review"><b>Mandatory review:</b> all SDS sections; constituent identity and concentration ranges; uses, first aid, handling, exposure controls, properties, toxicology, ecology, transport and supplier/regulatory information.</p>'+
    g.warnings.map(w=>'<p class="sds-review">⚠ '+esc(w)+'</p>').join('')+'</div>';
  });
