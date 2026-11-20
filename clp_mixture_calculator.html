@@ -190,6 +190,13 @@ details.h .ref{color:var(--mute);font-size:12px;margin:2px 0 4px}
 .formulation-workspaces-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .formulation-workspaces-actions button{font-size:12px;padding:7px 9px}
 .formulation-storage-warning{color:var(--bad)!important;font-weight:700}
+.sds-group-panel{margin-top:12px;border:1px solid var(--line);padding:14px;border-radius:10px;background:var(--bg)}
+.sds-group-panel h3{margin:0 0 8px;font-size:15px}
+.sds-group-panel h4{margin:10px 0 5px;font-size:13px}
+.sds-group-panel .sds-family{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:10px;margin:10px 0}
+.sds-group-panel p,.sds-group-panel li{font-size:12px;line-height:1.5}
+.sds-group-panel .sds-review{color:var(--mute);margin:5px 0}
+.sds-group-panel ul{padding-left:20px}
 @media(max-width:700px){.formulation-workspaces{padding:9px 12px}.formulation-workspaces-content{align-items:flex-start}.formulation-tab-list{width:100%;flex-basis:100%}.formulation-workspaces-actions{width:100%}}
 
 /* Classification breakdown — outcome-first, grouped evidence, progressive disclosure. */
@@ -503,8 +510,13 @@ pre.rep{padding:14px}
   <div class="formulation-workspaces-actions">
    <button id="workspace-add" type="button" class="primary">+ New classification</button>
    <button id="workspace-duplicate" type="button" title="Create an independent copy of the current formulation">Duplicate current</button>
+   <button id="workspace-sds-groups" type="button" aria-expanded="false" aria-controls="sds-grouping-panel">SDS grouping candidates</button>
   </div>
  </div>
+ <section id="sds-grouping-panel" class="sds-group-panel" aria-label="SDS grouping comparison" hidden>
+  <div id="sds-grouping-results" aria-live="polite"></div>
+  <button id="workspace-sds-refresh" type="button">Refresh comparison</button>
+ </section>
 </section>
 
 <div class="wrap">
@@ -2260,6 +2272,88 @@ function adopt(obj) {
 }
 
 
+/* SDS GROUPING PURE MATCHER: Candidates only; not a determination of SDS suitability. */
+function suggestSdsGrouping(tabs){
+ const norm=x=>String(x??"").trim().toLowerCase().replace(/\s+/g," ");
+ const stable=x=>Array.isArray(x)?x.map(stable):x&&typeof x==="object"
+   ?Object.fromEntries(Object.keys(x).sort().map(k=>[k,stable(x[k])])):x;
+ const sig=x=>JSON.stringify(stable(x));
+ const id=i=>String(i.cas||"").trim()?"CAS:"+norm(i.cas).replace(/\s+/g,""):
+   norm(i.name)?"NAME:"+norm(i.name):"";
+ const hazard=i=>{
+  const data={};
+  Object.keys(i).forEach(k=>{
+   if(!["_id","name","cas","pct","valueSource"].includes(k))data[k]=i[k];
+  });
+  if(data.hcodes)data.hcodes=String(data.hcodes).split(/[\s,;]+/).filter(Boolean).sort().join(" ");
+  if(Array.isArray(data.hcodeDetails))data.hcodeDetails=data.hcodeDetails.slice().sort((a,b)=>sig(a).localeCompare(sig(b)));
+  return sig(data);
+ };
+ const outkey=r=>sig(r.outcomes.map(o=>({label:o.label,codes:(o.h||[]).slice().sort(),
+  route:o.route||""})).sort((a,b)=>sig(a).localeCompare(sig(b))));
+ const buckets=new Map(),byClass=new Map(),excluded=[],valid=[];
+ (tabs||[]).forEach((t,n)=>{
+  const m=t.mixture||{},title=String(m.name||"").trim()||"Classification "+(n+1);
+  const list=(Array.isArray(m.ingredients)?m.ingredients:[]).filter(i=>i&&
+   (String(i.cas||i.name||"").trim()||String(i.pct??"").trim()));
+  const concentrations=list.map(i=>CLP.num(i.pct)),total=concentrations.reduce((a,b)=>a+b,0);
+  // Compare recorded percentages as-is. Never normalise them to 100% or
+  // infer that the unentered remainder is water or non-hazardous.
+  if(!list.length||list.some((i,k)=>!id(i)||!Number.isFinite(concentrations[k])||
+     concentrations[k]<0||concentrations[k]>100)||!(total>0)||total>100+1e-8){
+   excluded.push({id:t.id,title,reason:"Enter a positive known percentage with an ingredient identity for each listed row; totals above 100% are invalid. Totals below 100% ARE supported."});
+   return;
+  }
+  let r;try{r=CLP.classify(m);}catch(e){
+   excluded.push({id:t.id,title,reason:"Classification calculation failed."});return;
+  }
+  const ingredients=list.map((i,k)=>({identity:id(i),hazard:hazard(i),pct:concentrations[k]}))
+   .sort((a,b)=>sig(a).localeCompare(sig(b)));
+  const state=m.state||"liquid",cls=outkey(r),roster=ingredients.map(({identity,hazard})=>({identity,hazard}));
+  const physical=[m.flashPoint,m.ibp,m.viscosity40,m.pH,!!m.pHReserveOk];
+  const groupKey=sig({state,cls,roster,manual:m.manual||[]});
+  const exactKey=sig({state,ingredients,physical,manual:m.manual||[]});
+  const v={id:t.id,title,m,r,cls,exactKey,enteredTotal:total,
+   unentered:Math.max(0,100-total),
+   nameBased:ingredients.some(i=>i.identity.startsWith("NAME:"))};
+  valid.push(v);
+  if(!buckets.has(groupKey))buckets.set(groupKey,[]);
+  buckets.get(groupKey).push(v);
+  if(!byClass.has(cls))byClass.set(cls,[]);
+  byClass.get(cls).push(v);
+ });
+ const groups=[];
+ for(const members of buckets.values()){
+  if(members.length<2)continue;
+  const same=members.every(m=>m.exactKey===members[0].exactKey),warnings=[];
+  if(members.some(m=>m.unentered>1e-8))
+   warnings.push("PARTIAL FORMULATION: the unentered balance (100% minus the recorded ingredient percentages) is unknown, not assumed to be water or safe. The calculated CLP outcomes reflect only entered information and may change when remaining ingredients are identified. Do not treat this as a validated full-mixture classification or a shareable SDS.");
+  if(members.some(m=>m.nameBased))warnings.push("Some ingredient identities are name-only: verify CAS/EC identities and supplier specifications.");
+  if(members.some(m=>m.r.warnings.length||m.r.incomplete.length||m.r.nodata.length))
+   warnings.push("At least one product has missing data, classification warnings or incomplete hazards.");
+  if(new Set(members.map(m=>norm(m.m.intendedUse))).size>1)
+   warnings.push("Identified uses differ. Check SDS Section 1, exposure controls and handling.");
+  if(new Set(members.map(m=>sig([m.m.flashPoint,m.m.ibp,m.m.viscosity40,m.m.pH,m.m.pHReserveOk]))).size>1)
+   warnings.push("Entered physical properties differ: check Sections 9, 10 and 14.");
+  if(new Set(members.map(m=>m.r.sds.length)).size>1)
+   warnings.push("SDS/Section 3 disclosure triggers differ.");
+  if(!same)warnings.push("Concentration/physical ranges differ: validate worst-case hazards and Section 3 disclosures.");
+  groups.push({kind:same?(members.some(m=>m.unentered>1e-8)?"partial":"matching"):"family",
+   partial:members.some(m=>m.unentered>1e-8),
+   members:members.map(m=>({id:m.id,title:m.title,enteredTotal:m.enteredTotal,unentered:m.unentered})),
+   warnings});
+ }
+ groups.sort((a,b)=>a.kind.localeCompare(b.kind)||a.members[0].title.localeCompare(b.members[0].title));
+ const used=new Set(groups.flatMap(g=>g.members.map(m=>m.id)));
+ const sameClassificationOnly=[];
+ for(const members of byClass.values()){
+  const other=members.filter(m=>!used.has(m.id));
+  if(other.length>1)sameClassificationOnly.push(other.map(m=>m.title));
+ }
+ return {groups,checked:(tabs||[]).length,excluded,sameClassificationOnly,
+  unmatched:valid.filter(v=>!used.has(v.id)).map(v=>v.title)};
+}
+
 /* Multi-classification workspace. Only the active formulation is loaded in
    \`mix\`; inactive workspaces hold independent in-memory mixtures. All states
    are also retained locally in this browser via localStorage, never sent to
@@ -2398,6 +2492,42 @@ $("formulation-tab-list").addEventListener("click",e=>{
 });
 $("workspace-add").addEventListener("click",()=>addWorkspace(false));
 $("workspace-duplicate").addEventListener("click",()=>addWorkspace(true));
+
+/* The SDS comparison reports candidate matches; all 16 sections need human review. */
+function renderSdsGrouping(){
+ const r=suggestSdsGrouping(workspaceSnapshot().tabs),box=$("sds-grouping-results");
+ let text='<h3>SDS grouping candidates · '+r.checked+' formulation(s) checked</h3>'+
+  '<p><strong>Not SDS approval.</strong> Comparisons accept recorded ingredients below 100% without filling the remainder. Missing composition can change both classification and SDS content; the displayed CLP outcomes are only a screen of entered data. Under EU REACH Annex II, one SDS may cover several mixtures only when its information fulfils the requirements for each mixture. CLP classification alone is not sufficient. Verify all 16 sections, identity and ranges, Section 3 disclosures, uses, physical data, PPE, transport, supplier details, UFI/poison-centre and language requirements.</p>';
+ if(!r.groups.length)text+='<p><b>No composition-and-classification candidates found.</b> Add two or more formulations (partial percentages are supported) or verify ingredient identifiers and percentages.</p>';
+ r.groups.forEach(g=>{
+  text+='<div class="sds-family"><h4>'+
+   (g.kind==="matching"?"Matching full entered formulations and classification":
+    g.kind==="partial"?"Matching entered portion only — partial formulation":
+    g.partial?"Related entered portions — partial formulation; review required":
+    "Related formulation family — review required")+
+   '</h4><p>'+g.members.map(m=>'<strong>'+esc(m.title)+'</strong>'+
+    ' — '+esc(CLP.fmt(m.enteredTotal))+'% entered'+
+    (m.unentered>1e-8?', '+esc(CLP.fmt(m.unentered))+'% not entered':'')).join(' &middot; ')+'</p>'+
+   (g.kind==="matching"?'<p>Same entered ingredient identities, concentrations, hazard inputs, physical inputs and calculated CLP classifications.</p>':
+    g.kind==="partial"?'<p>Only the entered portions match. The unentered portion may differ between products and may alter their CLP classifications, so this is not confirmation of a common complete formulation.</p>':
+    '<p>Same entered ingredient identities, hazard inputs and currently calculated CLP outcomes, but recorded concentrations or physical properties differ. Verify the unentered composition, ranges and worst-case conditions.</p>')+
+   '<p class="sds-review"><b>Mandatory review:</b> all SDS sections; constituent identity and concentration ranges; uses, first aid, handling, exposure controls, properties, toxicology, ecology, transport and supplier/regulatory information.</p>'+
+   g.warnings.map(w=>'<p class="sds-review">⚠ '+esc(w)+'</p>').join('')+'</div>';
+ });
+ if(r.sameClassificationOnly.length)text+='<h4>Same classification only — not grouped</h4><p>'+
+  r.sameClassificationOnly.map(names=>names.map(esc).join(' &middot; ')).join('; ')+
+  '. Composition/hazard inputs differ, so matching CLP classifications alone do not establish SDS grouping suitability.</p>';
+ if(r.excluded.length)text+='<h4>Excluded: incomplete formulation data</h4><ul>'+
+  r.excluded.map(x=>'<li><b>'+esc(x.title)+'</b>: '+esc(x.reason)+'</li>').join('')+'</ul>';
+ if(r.unmatched.length)text+='<h4>No composition-and-classification match</h4><p>'+r.unmatched.map(esc).join(' &middot; ')+'</p>';
+ box.innerHTML=text;
+}
+$("workspace-sds-groups").addEventListener("click",()=>{
+ const panel=$("sds-grouping-panel");panel.hidden=!panel.hidden;
+ $("workspace-sds-groups").setAttribute("aria-expanded",String(!panel.hidden));
+ if(!panel.hidden)renderSdsGrouping();
+});
+$("workspace-sds-refresh").addEventListener("click",renderSdsGrouping);
 
 /* ---------- mixture fields ---------- */
 const MF = { mname: "name", mstate: "state", mfp: "flashPoint", mibp: "ibp", mvisc: "viscosity40", mph: "pH",

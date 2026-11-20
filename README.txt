@@ -301,3 +301,43 @@ DATA VALIDATION, DATA GAP, DATA REVIEW and EVIDENCE REVIEW warnings appear
 in the viewer independently of its optional visibility settings.
 This feature improves reliability; it does not replace expert review of
 specific substance evidence, experimental mixture data or complex CLP cases.
+
+
+SDS GROUPING CANDIDATES (BROWSER-LOCAL SCREEN)
+----------------------------------------------
+When two or more formulations are open in the classification tabs, click
+"SDS grouping candidates" above the formulation editor. The calculator
+compares all currently open formulations; click "Refresh comparison" after
+changing any input. No formulations are uploaded, sent to an API, or
+persisted beyond the existing local browser workspace storage.
+
+- Full matching recorded formulations: same ingredient identities,
+  concentrations, ingredient hazard evidence, entered physical properties
+  and calculated CLP outcomes. Different product names are allowed.
+- Partial matching entered portions: same recorded identities and percentages,
+  even if they total just 15%, 30%, 75% etc. The unentered balance is shown
+  explicitly for each product. It is NOT inferred to be water or non-hazardous.
+  This is a provisional match of ENTERED data, NOT complete formulations or
+  a confirmed full-mixture classification.
+- Related formulation family: same recorded ingredient identities, hazard
+  inputs and currently calculated CLP outcomes, but concentrations or entered
+  physical properties differ. Totals below 100% are supported, with a
+  prominent missing-composition warning. No automatic percentage rescaling
+  is performed; ingredient percentages are used exactly as entered.
+- Products with matching CLP classifications but different recorded
+  ingredient identities/hazard evidence are not grouped. Listed ingredients
+  with missing identities/percentages, totals of 0% or totals above 100%
+  are excluded until corrected. Unlisted remainder is allowed.
+- Ingredient identity uses CAS when available, otherwise the entered name;
+  name-only matching prompts a specific CAS/EC verification warning.
+- The UI flags classification data gaps, different intended uses, changing
+  physical measurements and divergent SDS-on-request trigger counts.
+
+The comparison is advisory and does NOT create, validate or approve an SDS.
+REACH Annex II, as amended by Regulation (EU) 2020/878, permits one SDS
+to cover multiple mixtures only if every SDS requirement is met for EACH
+mixture. That requires checking all 16 sections; constituent identity and
+applicable concentration ranges, worst-case hazards, Sections 3/9/14,
+uses, exposure controls, supplier and national-language requirements, and
+UFI/poison-centre considerations where applicable. Confirm the relevant
+EU/GB jurisdiction separately. Identical classification is NOT sufficient.
