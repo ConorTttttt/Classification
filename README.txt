@@ -311,15 +311,23 @@ compares all currently open formulations; click "Refresh comparison" after
 changing any input. No formulations are uploaded, sent to an API, or
 persisted beyond the existing local browser workspace storage.
 
-- Matching formulation and classification: same ingredient identities,
+- Full matching recorded formulations: same ingredient identities,
   concentrations, ingredient hazard evidence, entered physical properties
-  and CLP outcomes. Different product names are allowed.
-- Related formulation family: same ingredient identities, hazard inputs and
-  CLP outcomes, but concentrations or entered physical measurements differ.
-  This is a review candidate only, not a legal permission to share an SDS.
-- Products with matching CLP classifications but different ingredient
-  identities/hazard evidence are not proposed for grouping. Incomplete
-  ingredient identifiers/percentages or an out-of-range total are excluded.
+  and calculated CLP outcomes. Different product names are allowed.
+- Partial matching entered portions: same recorded identities and percentages,
+  even if they total just 15%, 30%, 75% etc. The unentered balance is shown
+  explicitly for each product. It is NOT inferred to be water or non-hazardous.
+  This is a provisional match of ENTERED data, NOT complete formulations or
+  a confirmed full-mixture classification.
+- Related formulation family: same recorded ingredient identities, hazard
+  inputs and currently calculated CLP outcomes, but concentrations or entered
+  physical properties differ. Totals below 100% are supported, with a
+  prominent missing-composition warning. No automatic percentage rescaling
+  is performed; ingredient percentages are used exactly as entered.
+- Products with matching CLP classifications but different recorded
+  ingredient identities/hazard evidence are not grouped. Listed ingredients
+  with missing identities/percentages, totals of 0% or totals above 100%
+  are excluded until corrected. Unlisted remainder is allowed.
 - Ingredient identity uses CAS when available, otherwise the entered name;
   name-only matching prompts a specific CAS/EC verification warning.
 - The UI flags classification data gaps, different intended uses, changing
