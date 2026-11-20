@@ -61,10 +61,62 @@ test('different mixture physical measurements are flagged for review',()=>{
  assert.equal(r.groups[0].kind,'family');
  assert(r.groups[0].warnings.some(x=>/physical properties/.test(x)));
 });
-test('incomplete formulation is excluded rather than grouped',()=>{
- const b=mixture('B');b.ingredients[1].pct='55';
+test('totals above 100% are excluded rather than silently normalised',()=>{
+ const b=mixture('B');b.ingredients[1].pct='95';
  const r=compare([tab('a',mixture('A')),tab('b',b)]);
  assert.equal(r.groups.length,0);assert.equal(r.excluded.length,1);
+});
+test('matching 15% recorded portions can be compared without the remaining 85%',()=>{
+ const a=mixture('A'),b=mixture('B');
+ a.ingredients=a.ingredients.slice(0,1);b.ingredients=b.ingredients.slice(0,1);
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.excluded.length,0);assert.equal(r.groups.length,1);
+ assert.equal(r.groups[0].kind,'partial');
+ assert.equal(r.groups[0].members[0].enteredTotal,15);
+ assert.equal(r.groups[0].members[0].unentered,85);
+ assert(r.groups[0].warnings.some(w=>/PARTIAL FORMULATION/.test(w)));
+ assert(r.groups[0].warnings.some(w=>/unknown, not assumed to be water or safe/.test(w)));
+});
+test('partial percentages are not normalised to 100% before matching',()=>{
+ const a=mixture('A',15),b=mixture('B',16);
+ a.ingredients=a.ingredients.slice(0,1);b.ingredients=b.ingredients.slice(0,1);
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.groups.length,1);
+ assert.equal(r.groups[0].kind,'family');
+ assert.equal(r.groups[0].partial,true);
+ assert.equal(r.groups[0].members[1].unentered,84);
+});
+test('partial matching does not imply unchanged full-mixture classification',()=>{
+ const a=mixture('A',15),b=mixture('B',0.5);
+ a.ingredients=a.ingredients.slice(0,1);b.ingredients=b.ingredients.slice(0,1);
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.groups.length,0);
+});
+test('missing ingredient identity or missing concentration excludes the row',()=>{
+ const a=mixture('A');a.ingredients=a.ingredients.slice(0,1);a.ingredients[0].pct='';
+ const b=mixture('B');b.ingredients=b.ingredients.slice(0,1);b.ingredients[0].name='';b.ingredients[0].cas='';
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.excluded.length,2);
+});
+test('zero recorded concentration is insufficient to compare',()=>{
+ const a=mixture('A',0);a.ingredients=a.ingredients.slice(0,1);
+ const r=compare([tab('a',a)]);
+ assert.equal(r.excluded.length,1);
+});
+test('partial and complete records are not called identical without same ingredients',()=>{
+ const a=mixture('A',15),b=mixture('B',15);
+ a.ingredients=a.ingredients.slice(0,1);
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.groups.length,0);
+});
+test('family with partial and complete records keeps a partial warning',()=>{
+ const a=mixture('A',80),b=mixture('B',100);
+ a.ingredients=a.ingredients.slice(0,1);b.ingredients=b.ingredients.slice(0,1);
+ const r=compare([tab('a',a),tab('b',b)]);
+ assert.equal(r.groups.length,1);
+ assert.equal(r.groups[0].kind,'family');
+ assert.equal(r.groups[0].partial,true);
+ assert(r.groups[0].warnings.some(w=>/PARTIAL FORMULATION/.test(w)));
 });
 test('empty workspaces are excluded',()=>{
  const r=compare([tab('a',{name:'Empty',ingredients:[],state:'liquid'})]);
@@ -80,5 +132,8 @@ test('panel controls and mandatory disclaimers are visible in HTML',()=>{
  assert.match(html,/id="sds-grouping-panel"/);
  assert.match(html,/one SDS may cover several mixtures only when its information fulfils the requirements for each mixture/);
  assert.match(html,/sameClassificationOnly/);
+ assert.match(html,/Matching entered portion only — partial formulation/);
+ assert.match(html,/Missing composition can change both classification and SDS content/);
+ assert.match(html,/not entered/);
 });
 console.log(n+' SDS grouping candidate checks passed');
