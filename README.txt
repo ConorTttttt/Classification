@@ -301,3 +301,35 @@ DATA VALIDATION, DATA GAP, DATA REVIEW and EVIDENCE REVIEW warnings appear
 in the viewer independently of its optional visibility settings.
 This feature improves reliability; it does not replace expert review of
 specific substance evidence, experimental mixture data or complex CLP cases.
+
+
+SDS GROUPING CANDIDATES (BROWSER-LOCAL SCREEN)
+----------------------------------------------
+When two or more formulations are open in the classification tabs, click
+"SDS grouping candidates" above the formulation editor. The calculator
+compares all currently open formulations; click "Refresh comparison" after
+changing any input. No formulations are uploaded, sent to an API, or
+persisted beyond the existing local browser workspace storage.
+
+- Matching formulation and classification: same ingredient identities,
+  concentrations, ingredient hazard evidence, entered physical properties
+  and CLP outcomes. Different product names are allowed.
+- Related formulation family: same ingredient identities, hazard inputs and
+  CLP outcomes, but concentrations or entered physical measurements differ.
+  This is a review candidate only, not a legal permission to share an SDS.
+- Products with matching CLP classifications but different ingredient
+  identities/hazard evidence are not proposed for grouping. Incomplete
+  ingredient identifiers/percentages or an out-of-range total are excluded.
+- Ingredient identity uses CAS when available, otherwise the entered name;
+  name-only matching prompts a specific CAS/EC verification warning.
+- The UI flags classification data gaps, different intended uses, changing
+  physical measurements and divergent SDS-on-request trigger counts.
+
+The comparison is advisory and does NOT create, validate or approve an SDS.
+REACH Annex II, as amended by Regulation (EU) 2020/878, permits one SDS
+to cover multiple mixtures only if every SDS requirement is met for EACH
+mixture. That requires checking all 16 sections; constituent identity and
+applicable concentration ranges, worst-case hazards, Sections 3/9/14,
+uses, exposure controls, supplier and national-language requirements, and
+UFI/poison-centre considerations where applicable. Confirm the relevant
+EU/GB jurisdiction separately. Identical classification is NOT sufficient.
