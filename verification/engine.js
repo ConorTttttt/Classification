@@ -82,6 +82,86 @@
     EUH451: 'Can cause very long-lasting and diffuse contamination of water resources'
   };
 
+  /* CLP Annex II Parts 1, 2 & 4; product-level supplementary label text.
+     These are not ingredient-calculated CLP hazard classes. The user must
+     substantiate applicable conditions before selecting an entry. EUH208 is
+     also independently generated from sensitisation calculations. */
+  const EUH_CATALOG = Object.freeze([
+    {code:'EUH014',text:'Reacts violently with water',condition:'Mixture reacts violently with water (Annex II 1.1.1).'},
+    {code:'EUH018',text:'In use, may form flammable/explosive vapour-air mixture',condition:'Non-flammable product forms flammable/explosive vapour-air mixture in use (1.1.2).'},
+    {code:'EUH019',text:'May form explosive peroxides',condition:'Evidence of explosive peroxide formation in storage (1.1.3).'},
+    {code:'EUH044',text:'Risk of explosion if heated under confinement',condition:'Evidence of explosion risk under confinement (1.1.4).'},
+    {code:'EUH029',text:'Contact with water liberates toxic gas',condition:'Water contact evolves acutely toxic Cat 1–3 gas in dangerous amounts (1.2.1).'},
+    {code:'EUH031',text:'Contact with acids liberates toxic gas',condition:'Acid contact evolves acutely toxic Cat 3 gas in dangerous amounts (1.2.2).'},
+    {code:'EUH032',text:'Contact with acids liberates very toxic gas',condition:'Acid contact evolves acutely toxic Cat 1–2 gas in dangerous amounts (1.2.3).'},
+    {code:'EUH066',text:'Repeated exposure may cause skin dryness or cracking',condition:'Skin dryness/cracking evidence; not skin-irritant under Section 3.2 (1.2.4).'},
+    {code:'EUH070',text:'Toxic by eye contact',condition:'Eye-contact systemic toxicity evidence; Annex VI exceptions can modify the 0.1% constituent trigger (1.2.5).'},
+    {code:'EUH071',text:'Corrosive to the respiratory tract',condition:'Evidence for respiratory corrosivity plus inhalation/skin corrosion circumstances (1.2.6).'},
+    {code:'EUH201',text:'Contains lead. Should not be used on surfaces liable to be chewed or sucked by children',condition:'Lead in paint/varnish exceeds 0.15% by weight as metal (2.1).'},
+    {code:'EUH201A',text:'Warning! Contains lead',condition:'Short wording for qualifying lead paint/varnish in packages under 125 ml (2.1).'},
+    {code:'EUH202',text:'Cyanoacrylate. Danger. Bonds skin and eyes in seconds. Keep out of the reach of children',condition:'Cyanoacrylate-based adhesive; safety advice accompanies package (2.2).'},
+    {code:'EUH203',text:'Contains chromium (VI). May produce an allergic reaction',condition:'Hydrated cement has >0.0002% soluble Cr(VI), unless already labelled H317 (2.3).'},
+    {code:'EUH204',text:'Contains isocyanates. May produce an allergic reaction.',condition:'Mixture contains isocyanates not otherwise identified on the label (2.4).'},
+    {code:'EUH205',text:'Contains epoxy constituents. May produce an allergic reaction.',condition:'Epoxy constituents of average molecular weight ≤700 not otherwise identified (2.5).'},
+    {code:'EUH206',text:'Warning! Do not use together with other products. May release dangerous gases (chlorine)',condition:'Mixture contains >1% active chlorine; applicable packaging/market conditions (2.6).'},
+    {code:'EUH207',text:'Warning! Contains cadmium. Dangerous fumes are formed during use. See information supplied by the manufacturer. Comply with the safety instructions',condition:'Cadmium alloys for brazing or soldering (2.7).'},
+    {code:'EUH208',text:'Contains (name of sensitising substance). May produce an allergic reaction',condition:'Named sensitiser at applicable elicitation threshold (2.8); normally calculated automatically.'},
+    {code:'EUH209',text:'Can become highly flammable in use',condition:'Qualifying halogenated-hydrocarbon liquid plus >5% highly flammable ingredients; flash point criterion (2.9).'},
+    {code:'EUH209A',text:'Can become flammable in use',condition:'Qualifying halogenated-hydrocarbon liquid plus >5% flammable ingredients; flash point criterion (2.9).'},
+    {code:'EUH210',text:'Safety data sheet available on request',condition:'Non-hazardous mixture not for general public meeting Annex II 2.10 or 2.12 SDS-trigger criteria.'},
+    {code:'EUH211',text:'Warning! Hazardous respirable droplets may be formed when sprayed. Do not breathe spray or mist.',condition:'Liquid mixture ≥1% TiO2 particles with aerodynamic diameter ≤10 μm (2.12).'},
+    {code:'EUH212',text:'Warning! Hazardous respirable dust may be formed when used. Do not breathe dust.',condition:'Solid mixture ≥1% titanium dioxide (2.12).'},
+    {code:'EUH401',text:'To avoid risks to human health and the environment, comply with the instructions for use',condition:'Plant protection products subject to the applicable Annex II Part 4 requirements.'}
+  ]);
+  const EUH_BY_CODE = new Map(EUH_CATALOG.map(x=>[x.code,x]));
+  function addManualEUH(m,ctx,outcomes){
+    const raw=String(m.manualEUH||'').trim();
+    const basis=String(m.manualEUHBasis||'').trim();
+    const codes=[...new Set(raw.split(/[\s,;]+/).map(x=>x.trim().toUpperCase()).filter(Boolean))];
+    const prohibitedPairs=[['EUH201','EUH201A'],['EUH209','EUH209A']];
+    if(!outcomes.length && ['professional','industrial'].includes(m.audience) && ctx.sds.length
+       && !codes.includes('EUH210'))
+      ctx.warnings.push('EUH210 REVIEW: a non-classified professional/industrial mixture has SDS-on-request triggers. Assess Annex II 2.10/2.12 and complete mixture evidence; EUH210 is not assigned automatically.');
+    codes.forEach(code=>{
+      const row=EUH_BY_CODE.get(code);
+      if(!row){
+        ctx.warnings.push('SUPPLEMENTAL EUH INPUT: '+code+' is not in the supported Annex II catalogue; not applied. New hazard classes (EUH380–451) are calculated separately.');
+        return;
+      }
+      if(!basis){
+        ctx.warnings.push('SUPPLEMENTAL EUH INPUT: '+code+' needs a documented product-specific regulatory/evidence basis; not applied.');
+        return;
+      }
+      if(prohibitedPairs.some(pair=>pair.includes(code)&&pair.some(other=>other!==code && codes.includes(other)))){
+        ctx.warnings.push('SUPPLEMENTAL EUH REVIEW: '+code+' is entered alongside an alternative variant (EUH201/201A or EUH209/209A); choose only the applicable one. Neither variant is applied.');
+        return;
+      }
+      if(code==='EUH210' && (outcomes.length || !['professional','industrial'].includes(m.audience) || !ctx.sds.length)){
+        ctx.warnings.push('SUPPLEMENTAL EUH INPUT: EUH210 needs a non-hazardous professional/industrial mixture and a verified SDS-on-request trigger. Not applied.');
+        return;
+      }
+      if((code==='EUH211'&&m.state!=='liquid')||(code==='EUH212'&&m.state!=='solid')){
+        ctx.warnings.push('SUPPLEMENTAL EUH INPUT: '+code+' is for '+(code==='EUH211'?'liquid':'solid')+' mixtures; check physical state. Not applied.');
+        return;
+      }
+      if(code==='EUH208' && ctx.euh.some(x=>x.code==='EUH208')){
+        ctx.warnings.push('SUPPLEMENTAL EUH REVIEW: EUH208 was calculated from sensitiser ingredients; do not duplicate the statement manually.');
+        return;
+      }
+      let text=row.text;
+      if(code==='EUH208'){
+        const name=String(m.manualEUH208Name||'').trim();
+        if(!name){
+          ctx.warnings.push('SUPPLEMENTAL EUH INPUT: manually entered EUH208 requires the name of the sensitising substance; not applied.');
+          return;
+        }
+        text='Contains '+name+'. May produce an allergic reaction';
+      }
+      ctx.euh.push({code,text,why:'User-confirmed Annex II selection: '+basis+'; condition: '+row.condition});
+      ctx.warnings.push('SUPPLEMENTAL EUH REVIEW: '+code+' was selected using user-supplied evidence. Check Annex II conditions and label wording before release; no product-specific test or legal verification was performed.');
+    });
+  }
+
   /* Table 3.1.1 limits and Table 3.1.2 conversion values */
   const AT = {
     oral: { unit: 'mg/kg bw', label: 'oral', limits: [5, 50, 300, 2000], conv: [0.5, 5, 100, 500], h: ['H300', 'H300', 'H301', 'H302'] },
@@ -1354,6 +1434,7 @@
     const hs = [];
     const seen = new Set();
     outcomes.filter((o) => !o.omitOnLabel).forEach((o) => o.h.forEach((c) => { if (!seen.has(c)) { seen.add(c); hs.push({ code: c, text: HTEXT[c] || '', from: o.label }); } else { const e = hs.find((x) => x.code === c); if (e && !e.from.includes(o.label)) e.from += ', ' + o.label; } }));
+    addManualEUH(m,ctx,outcomes);
     const art27 = selectArticle27(
       hs.filter((x) => !/^EUH/.test(x.code)),
       [...hs.filter((x) => /^EUH/.test(x.code)), ...ctx.euh.map((x) => ({ code: x.code, text: x.text, from: x.why }))],
@@ -1517,5 +1598,5 @@
     return t;
   }
 
-  return { classify, report, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
+  return { EUH_CATALOG, classify, report, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
 });
