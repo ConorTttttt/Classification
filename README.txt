@@ -301,3 +301,42 @@ DATA VALIDATION, DATA GAP, DATA REVIEW and EVIDENCE REVIEW warnings appear
 in the viewer independently of its optional visibility settings.
 This feature improves reliability; it does not replace expert review of
 specific substance evidence, experimental mixture data or complex CLP cases.
+
+
+SUPPLEMENTARY EUH STATEMENTS — CLP ANNEX II (EU)
+------------------------------------------------
+Open "Supplementary EUH statements" below Labelling context in the offline
+calculator. Choose an Annex II EUH code (e.g. EUH066, EUH204, EUH205,
+EUH210, EUH211, EUH212), click "Add selected EUH code", then supply an
+evidence-based justification for the selected statement(s). The selector
+contains the current Annex II Part 1/Part 2/Part 4 texts and summaries of
+conditions that must be independently verified, not just H-code triggers.
+
+Supported product-level manual Annex II codes:
+EUH014, EUH018, EUH019, EUH044, EUH029, EUH031, EUH032, EUH066, EUH070,
+EUH071, EUH201, EUH201A, EUH202, EUH203, EUH204, EUH205, EUH206, EUH207,
+EUH208, EUH209, EUH209A, EUH210, EUH211, EUH212, EUH401.
+
+EUH208 is also generated automatically using entered ingredient sensitiser
+categories/SCLs. EUH380/381, EUH430/431, EUH440/441 and EUH450/451 are
+already calculated from the applicable new hazard classes; no manual Annex
+II selection is needed for those hazards.
+
+Selections are added to the retained EUH label elements and the Article 27
+statement audit, not to the underlying CLP mixture classification.
+Unsupported codes, selections without evidence, contradictory 201/201A or
+209/209A variants, and missing EUH208 sensitiser names are not retained.
+EUH210 needs a non-hazardous professional/industrial mixture and an SDS-
+on-request trigger. EUH211/212 are restricted to the corresponding physical
+states, but the titanium dioxide size/content condition is NOT tested by
+this ingredient-only calculator. EUH210 candidates can be flagged for review
+but are not silently assigned.
+
+EUH wording is supplied in English, so the final language and label
+requirements for the destination market must be confirmed. Product-specific
+Annex II conditions (e.g. reactive behaviour, chemical identity, package
+size, TiO2 particle specifications and intended uses) are NOT established
+merely by choosing a code. The feature does not certify label approval.
+
+The offline HTML and verification/engine.js include the same calculation
+engine. Automated regressions live in verification/test_euh_annex_ii.js.
