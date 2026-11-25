@@ -2,7 +2,7 @@
 const fs=require("fs"),assert=require("assert").strict;
 const html=fs.readFileSync("clp_mixture_calculator.html","utf8");
 const app=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][1][1];
-const a=app.indexOf("let workspaceTabs=[]"),b=app.indexOf("/* ---------- mixture fields ---------- */",a);
+const a=app.indexOf("let workspaceTabs=[]"),b=app.indexOf("/* Curated supplemental EUH catalogue",a);
 assert(a>=0&&b>a,"Workspace logic missing");
 const section=app.slice(a,b);
 const saved=new Map();
