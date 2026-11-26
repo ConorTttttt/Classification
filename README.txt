@@ -301,3 +301,59 @@ DATA VALIDATION, DATA GAP, DATA REVIEW and EVIDENCE REVIEW warnings appear
 in the viewer independently of its optional visibility settings.
 This feature improves reliability; it does not replace expert review of
 specific substance evidence, experimental mixture data or complex CLP cases.
+
+
+GERMAN WGK / AwSV MIXTURE ASSESSMENT (OFFLINE, SEPARATE FROM CLP)
+-----------------------------------------------------------------
+Expand "German WGK / AwSV" in the CLP calculator, below the ingredients.
+The WGK tool automatically reuses ingredient name, CAS and mass percentage,
+but never guesses a water hazard class from CLP H-codes. For each ingredient,
+verify the official WGK/nwg/awg class using the German Federal Environment
+Agency's Rigoletto database, then enter:
+  - WGK 1, 2, 3, nwg (not water hazardous) or awg (generally water hazardous)
+  - AwSV 1.2 carcinogenic status (Cat. 1A/1B; inhalation-only excluded)
+  - Applicable AwSV M-factor for WGK 2/3 (enter 1 if none after verification)
+  - Data source, including preferably UBA Kenn-Nr, footnotes and lookup date
+
+Official lookup: https://webrigoletto.uba.de/Rigoletto/Home/
+Official downloadable CSV: https://webrigoletto.uba.de/Rigoletto/Home/Downloads
+The tool does not fetch live Rigoletto data or automatically import WGKs.
+
+Calculation: AwSV Annex 1 §5.2 includes the usual constituent thresholds:
+WGK 3 >=3% aggregate or >=0.1% WGK 3 carcinogenic constituent; WGK 2
+>=5% WGK 2 aggregate, >=0.2% noncarcinogenic WGK 3 constituent, or >=0.1%
+WGK 2 carcinogenic constituent; and the WGK 1 and nwg distinctions.
+Relevant aquatic M-factors modify the effective percentages. The
+carcinogen threshold can differ where substance-/mixture-specific rules
+require it: the tool flags this for expert review.
+
+"nwg" is only considered when user confirms all additional AwSV Annex 1
+§2.2(e-i) conditions (including no intentionally added WGK 3, certain
+carcinogens, unknown-class material or dispersants/emulsifiers and that
+the mixture does not float). A checkbox is a claim by the user, not
+independent proof. "awg" substances trigger a separate special review
+because they cannot simply be converted to numbered WGK classes.
+Solid mixtures show the generally-water-hazardous default (§3(2)(8))
+unless a §10 assessment is explicitly recorded.
+
+The tool accepts partial formulations by total entered percent, but
+NEVER normalises percentages, fills unknown remainders with water or
+returns a definitive WGK if any component composition/classification,
+M-factor, carcinogen status or provenance is unresolved. Any reported
+WGK with outstanding evidence gaps is explicitly PROVISIONAL and must
+not be treated as a final determination.
+
+The WGK result is separate from CLP mixture classification. It also
+appears in the text report with applicable legal references, evidence
+gaps and current limitations. Saved formulation JSON and independent
+browser workspace tabs keep the newly entered WGK fields.
+
+Not yet implemented: automatic Rigoletto CSV/CAS lookup, all AwSV special
+exemptions and substance-group footnotes, the §5.3 test-data route
+(which can take precedence), exact mixture-specific carcinogenic
+concentration exceptions, and regulatory-form generation/documentation.
+Verify each with applicable official guidance and competent review.
+
+Implementation is browser-offline in clp_mixture_calculator.html with
+an exact copy of verification/wgk_assessment.js. Regression tests:
+verification/test_wgk_assessment.js. Run all verification via npm test.
