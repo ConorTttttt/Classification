@@ -88,7 +88,7 @@ test('blank WGK source blocks definitive assignment',()=>{
 });
 test('partial 15 percent only cannot produce final class',()=>{
  const r=classOf([entry(15,'2')]);assert.equal(r.status,'provisional');
- assert.equal(r.remainder,85);assert(r.warnings.some(x=>/not automatically assumed/.test(x)));
+ assert.equal(r.remainder,85);assert(r.warnings.some(x=>/not automatically assumed/i.test(x)));
 });
 test('incomplete partial mix 3 percent WGK3 stays provisional even with decisive known hazard',()=>{
  const r=classOf([entry(3,'3')]);assert.equal(r.classification,'WGK 3');assert.equal(r.status,'provisional');
