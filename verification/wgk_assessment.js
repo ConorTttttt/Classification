@@ -19,7 +19,7 @@ function assess(mix){
   const m=mix||{}, input=Array.isArray(m.ingredients)?m.ingredients:[];
   const rows=[],warnings=[],steps=[],blockers=[];
   let total=0,wgk1=0,wgk2=0,wgk3=0,wgk2Raw=0,wgk3Raw=0;
-  let rawUnknown=0, addedCarc=false,carc2=false,carc3=false,carcBelow=false;
+  let rawUnknown=0,hasAwg=false,addedCarc=false,carc2=false,carc3=false,carcBelow=false;
   let w2Present=false,w3Present=false,w2Single=false,w3Single=false;
   const fail=(s)=>{if(!blockers.includes(s))blockers.push(s);};
   input.forEach((ing,index)=>{
@@ -35,6 +35,7 @@ function assess(mix){
       rows.push({name,pct,wgk:"?",effective:null});return;
     }
     if(wgk==="awg"){
+      hasAwg=true;
       fail(name+": awg (allgemein wassergefährdend) needs specific floating-material/mixture assessment; do not convert it to a numbered WGK.");
       rows.push({name,pct,wgk,effective:null});return;
     }
@@ -44,7 +45,7 @@ function assess(mix){
     let factor=1;
     if(wgk==="2"||wgk==="3"){
       const entered=asNumber(ing.wgkM);
-      if(!Number.isFinite(entered)||entered<1){
+      if(!Number.isSafeInteger(entered)||entered<1){
         fail(name+": confirm the applicable AwSV §1.4 M-factor (enter 1 if none applies).");
       } else factor=entered;
       if(carcinogenic!=="yes"&&carcinogenic!=="no")
@@ -100,6 +101,13 @@ function assess(mix){
   }
   if(m.state==="solid"&&m.wgkSolidAssessed)
     warnings.push("Solid-mixture WGK calculations require a valid AwSV §10 assessment/documentation.");
+  if(hasAwg){
+    return {status:"special",classification:"awg-containing mixture — special AwSV assessment required",
+      enteredTotal:total,remainder,rows,steps:[
+      "AwSV Annex 1 §3.3 may prescribe awg for a floating mixture of awg floating liquids and nwg substances. Other compositions need separate §5.2 assessment.",
+      "An awg component cannot simply be treated as numbered WGK 1/2/3 or as nwg."],
+      blockers,warnings};
+  }
   let candidate="nwg / WGK 1",basis="2.2 and 5.2.3",floor="";
   if(carc3){
     candidate="WGK 3";basis="5.2.1(a); 5.1.3";steps.push("WGK 3 carcinogenic constituent reaches the 0.1% standard consideration threshold.");
