@@ -105,7 +105,16 @@ test('unidentified material not silently treated as water',()=>{
  const r=classOf([entry(100,'')]);assert.notEqual(r.classification,'nwg');assert.equal(r.status,'provisional');
 });
 test('awg component blocks numeric final result without special assessment',()=>{
- const r=classOf([entry(100,'awg')]);assert.equal(r.status,'provisional');assert(r.blockers.some(x=>/awg/.test(x)));
+ const r=classOf([entry(100,'awg')]);assert.equal(r.status,'special');assert.match(r.classification,/awg-containing/);
+ assert(r.blockers.some(x=>/awg/.test(x)));
+});
+test('awg and numbered WGK mix does not present unsupported numeric result',()=>{
+ const r=classOf([entry(50,'awg'),entry(50,'2')]);assert.equal(r.status,'special');
+ assert.match(r.classification,/special AwSV assessment/);
+});
+test('non-integer M factor blocks definitive assessment',()=>{
+ const r=classOf([entry(5,'2',{wgkM:'1.5'}),entry(95,'nwg')]);
+ assert.equal(r.status,'provisional');assert(r.blockers.some(x=>/M-factor/.test(x)));
 });
 test('solid default result follows AwSV section 3',()=>{
  const r=classOf([entry(100,'1')],{state:'solid'});
