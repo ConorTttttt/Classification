@@ -47,6 +47,38 @@
 
   const HTEXT = {
     H224: 'Extremely flammable liquid and vapour', H225: 'Highly flammable liquid and vapour', H226: 'Flammable liquid and vapour',
+    H200: "Unstable explosives.",
+    H201: "Explosive; mass explosion hazard.",
+    H202: "Explosive; severe projection hazard.",
+    H203: "Explosive; fire, blast or projection hazard.",
+    H204: "Fire or projection hazard.",
+    H205: "May mass explode in fire.",
+    H206: "Fire, blast or projection hazard; increased risk of explosion if desensitising agent is reduced.",
+    H207: "Fire or projection hazard; increased risk of explosion if desensitising agent is reduced.",
+    H208: "Fire hazard; increased risk of explosion if desensitising agent is reduced.",
+    H220: "Extremely flammable gas.",
+    H221: "Flammable gas.",
+    H222: "Extremely flammable aerosol.",
+    H223: "Flammable aerosol.",
+    H228: "Flammable solid.",
+    H229: "Pressurised container: May burst if heated.",
+    H230: "May react explosively even in the absence of air.",
+    H231: "May react explosively even in the absence of air at elevated pressure and/or temperature.",
+    H232: "May ignite spontaneously if exposed to air.",
+    H240: "Heating may cause an explosion.",
+    H241: "Heating may cause a fire or explosion.",
+    H242: "Heating may cause a fire.",
+    H250: "Catches fire spontaneously if exposed to air.",
+    H251: "Self-heating: may catch fire.",
+    H252: "Self-heating in large quantities; may catch fire.",
+    H260: "In contact with water releases flammable gases which may ignite spontaneously.",
+    H261: "In contact with water releases flammable gases.",
+    H270: "May cause or intensify fire; oxidiser.",
+    H271: "May cause fire or explosion; strong oxidiser.",
+    H272: "May intensify fire; oxidiser.",
+    H280: "Contains gas under pressure; may explode if heated.",
+    H281: "Contains refrigerated gas; may cause cryogenic burns or injury.",
+    H290: "May be corrosive to metals.",
     H300: 'Fatal if swallowed', H301: 'Toxic if swallowed', H302: 'Harmful if swallowed',
     H310: 'Fatal in contact with skin', H311: 'Toxic in contact with skin', H312: 'Harmful in contact with skin',
     H330: 'Fatal if inhaled', H331: 'Toxic if inhaled', H332: 'Harmful if inhaled',
@@ -269,29 +301,134 @@
 
   /* ---------------- hazard classes ---------------- */
 
+  // Codes refer to the class-specific hazard communication tables in Part 2.
+  const PHYSICAL = [
+    ['Explosives','','200 201 202 203 204 205','Review explosive-property evidence and the supplied article or mixture.'],
+    ['Flammable gases','gas','220 221 230 231 232','Review mixture flammability, pyrophoricity and chemical stability.'],
+    ['Aerosols','','222 223 229','Establish dispenser type and assess the packaged product.'],
+    ['Oxidising gases','gas','270','Establish the oxidising power of the gas mixture.'],
+    ['Gases under pressure','','280 281','Check pressure, physical condition and packaging as supplied.'],
+    ['Flammable liquids','liquid','224 225 226','Review finished-liquid flash point and initial boiling point when required.'],
+    ['Flammable solids','solid','228','Review burning-rate and flame-propagation evidence for the solid.'],
+    ['Self-reactive substances and mixtures','liquid solid','240 241 242','Review thermal stability, exclusions and independently assessed type.'],
+    ['Pyrophoric liquids','liquid','250','Review evidence of ignition on contact with air.'],
+    ['Pyrophoric solids','solid','250','Review evidence of ignition on contact with air.'],
+    ['Self-heating substances and mixtures','liquid solid','251 252','Review self-heating evidence for the product and package size.'],
+    ['Emits flammable gases on contact with water','liquid solid','260 261','Review gas evolution and ignition evidence for the mixture.'],
+    ['Oxidising liquids','liquid','271 272','Review finished-liquid oxidising-property evidence.'],
+    ['Oxidising solids','solid','271 272','Review finished-solid oxidising-property evidence.'],
+    ['Organic peroxides','liquid solid','240 241 242','Review composition, exclusions and independently established peroxide type.'],
+    ['Corrosive to metals','','290','Review corrosion evidence for steel and aluminium.'],
+    ['Desensitised explosives','liquid solid','206 207 208','Review desensitisation and classification of the product as supplied.']
+  ].map(([name, states, codes, next], i) => ({
+    ref: '2.' + (i + 1), name, states: states ? states.split(' ') : [],
+    codes: codes.split(' ').map(n => 'H' + n), next
+  }));
+  const reviewed = 'Not classified — evidence reviewed';
+  const present = value => typeof value === 'string' && !!value.trim();
   function flammability(mix) {
-    const H = hz('flam', 'Flammable liquid (physical hazard – from test data)', 'Annex I 2.6 · Table 2.6.1 (cons. p.101); closed-cup requirement 2.6.4.1 (p.102)');
-    if (mix.state === 'gas') { H.status = 'na'; H.steps.push('Gaseous mixture: flammable-gas / pressure-gas classes are not calculated here. Use the manual entries.'); return H; }
-    if (mix.state === 'solid') { H.status = 'na'; H.steps.push('Solid mixture: the flammable-liquid criteria (2.6) do not apply. Flammable solids (2.7) need test data – use the manual entries.'); return H; }
-    const fp = num(mix.flashPoint), ibp = num(mix.ibp);
-    if (!has(fp)) { H.status = 'nodata'; H.steps.push('No flash point entered. Flammable-liquid classification needs a closed-cup flash point of the mixture (2.6.4.1).'); return H; }
-    H.steps.push(`Flash point ${fmt(fp)} °C${has(ibp) ? ', initial boiling point ' + fmt(ibp) + ' °C' : ''}.`);
-    if (fp < 23 - EPS) {
-      if (!has(ibp)) { H.status = 'incomplete'; H.steps.push('Flash point < 23 °C: the initial boiling point is needed to choose between Category 1 and 2.'); return H; }
-      if (le(ibp, 35)) { H.status = 'classified'; H.outcomes.push(out('Flam. Liq. 1', ['H224'], 'Danger', ['GHS02'])); H.steps.push('FP < 23 °C and IBP ≤ 35 °C → Category 1.'); }
-      else { H.status = 'classified'; H.outcomes.push(out('Flam. Liq. 2', ['H225'], 'Danger', ['GHS02'])); H.steps.push('FP < 23 °C and IBP > 35 °C → Category 2.'); }
-    } else if (le(fp, 60)) {
-      H.status = 'classified'; H.outcomes.push(out('Flam. Liq. 3', ['H226'], 'Warning', ['GHS02']));
-      H.steps.push('FP ≥ 23 °C and ≤ 60 °C → Category 3.');
-      if (fp >= 55 - EPS && fp <= 75 + EPS) H.notes.push('Footnote to Table 2.6.1: gas oils, diesel and light heating oils with FP between 55 °C and 75 °C may be regarded as Category 3.');
-    } else {
-      H.steps.push('FP > 60 °C → not a flammable liquid under 2.6.1.');
-      if (fp <= 75 + EPS && fp >= 55) H.notes.push('Footnote to Table 2.6.1: gas oils/diesel/light heating oils with FP 55–75 °C may be regarded as Category 3.');
+    const H = hz('flam', 'Flammable liquid', 'Annex I §2.6, Tables 2.6.1–2.6.4');
+    function finish(status, reason) {
+      H.status = status;
+      H.steps.push(reason);
+      return H;
     }
-    H.notes.push('A calculated flash point (2.6.4.2–3) is only valid for the mixture types described there; enter a measured closed-cup value where in doubt.');
-    return H;
+    if (['gas','solid'].includes(mix.state)) return finish('na','Recorded physical state: ' + mix.state + '.');
+    if (mix.state !== 'liquid') return finish('nodata','Confirm the finished product is a liquid.');
+    if (mix.dispenser === 'aerosol') return finish('na','Aerosol dispenser: assess under §2.3.');
+    const temperature = v => /^[-+]?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(String(v).trim()) ? num(v) : NaN;
+    const fp = temperature(mix.flashPoint), ibp = temperature(mix.ibp);
+    if (!has(fp)) return finish('nodata','Enter the finished-liquid closed-cup flash point in °C.');
+    if (!mix.fpBasis) H.steps.push('Legacy closed-cup mixture field; confirm the original method and source.');
+    H.steps.push('Flash point ' + fp + ' °C' + (has(ibp) ? ', initial boiling point ' + ibp + ' °C.' : '.'));
+    if (mix.fpBasis === 'measured' && /open[ -]cup/i.test(mix.fpMethod || '')) return finish('incomplete','Open-cup method conflicts with the required closed-cup measurement.');
+    if (mix.fpMethod) H.steps.push('Method: ' + mix.fpMethod);
+    if (mix.fpSource) H.steps.push('Source: ' + mix.fpSource);
+    if (mix.fpBasis === 'calculated') return finish('incomplete','Independent review of the calculation and all §2.6.4.2–3 conditions is required.');
+    if (mix.fpBasis && mix.fpBasis !== 'measured') return finish('incomplete','Obtain an applicable closed-cup result.');
+    if (mix.fpBasis === 'measured' && !(present(mix.fpMethod) && present(mix.fpSource))) return finish('incomplete','Record the closed-cup method and finished-mixture source.');
+    if (mix.l2) {
+      H.steps.push('UN L.2: ' + mix.l2 + (mix.l2Source ? ' — ' + mix.l2Source : ''));
+      if (!['negative','positive'].includes(mix.l2)) return finish('incomplete','Resolve conflicting L.2 evidence.');
+      if (mix.l2 === 'negative' && fp > 35 && fp <= 60) {
+        if (!present(mix.l2Source) || (mix.fuel === 'qualifying' && fp >= 55)) return finish('incomplete','Verify the finished-mixture L.2 report and resolve any competing fuel election.');
+        return finish('not','Documented negative finished-mixture L.2 test: §2.6.4.5 exception applied.');
+      }
+      if (mix.l2 === 'negative') H.steps.push('Outside the §2.6.4.5 temperature interval.');
+    }
+    if (mix.fuel === 'qualifying' && (fp < 55 || fp > 75 || !present(mix.fuelSource))) H.steps.push('Fuel election unsupported or outside 55–75 °C; ordinary criteria apply unless the fuel provision needs resolution.');
+    if (fp < 23 && !has(ibp)) return finish('incomplete','Initial boiling point required to distinguish Categories 1 and 2.');
+    if (fp > 60) {
+      if (fp > 75 || mix.fuel === 'ordinary') return finish('not','Outside the applicable Table 2.6.1 classification interval.');
+      if (mix.fuel !== 'qualifying' || !present(mix.fuelSource)) return finish('incomplete','Resolve qualifying fuel identity and document the Table 2.6.1 footnote election.');
+      H.steps.push('Qualifying fuel election: ' + mix.fuelSource);
+    }
+    const category = fp >= 23 ? 3 : ibp <= 35 ? 1 : 2;
+    H.outcomes.push(out('Flam. Liq. ' + category, ['H' + (223 + category)], category === 3 ? 'Warning' : 'Danger', ['GHS02']));
+    return finish('classified','Table 2.6.1 Category ' + category + '.');
   }
 
+  function physicalAssessment(m, ingredients, flam) {
+    return PHYSICAL.map(def => {
+      const contributors = [];
+      for (const i of ingredients) {
+        const screeningCodes = def.codes;
+        const aerosolComponent = def.ref === '2.3' && m.dispenser === 'aerosol';
+        const codes = i.hcodeDetails.map(c => c.code).filter(c => screeningCodes.includes(c) ||
+          (aerosolComponent && ['H220','H221','H224','H225','H226','H228'].includes(c)));
+        if (codes.length) contributors.push(nm(i) + ' (' + (has(i.pct) ? i.pct + ' %' : 'concentration unavailable') + ', ' + codes.join(', ') + ')');
+      }
+      const legacy = (m.manual || []).filter(x => x && !x.requirePhysicalReview && !x.physicalClass && def.codes.includes(String(x.h).trim()));
+      const records = (m.manual || []).filter(x => x && x.physicalClass === def.ref);
+      const evidence = records.flatMap(x => [x.method,x.result,x.units,x.reference,x.source,x.scope,x.decision,x.label,x.notes].filter(present).join(' · '));
+      const a = {ref:def.ref, name:def.name, contributors, evidence, status:contributors.length ? 'Potential concern' : 'Insufficient data', next:def.next};
+      for (const x of legacy) evidence.push('Previously entered manual classification: ' + (x.label || x.h) + '. Link a finished-mixture review to assess its basis.');
+      if (legacy.length || (def.ref === '2.3' && m.dispenser === 'aerosol')) a.status = 'Potential concern';
+      const excluded = def.states.length && ['gas','liquid','solid'].includes(m.state) && !def.states.includes(m.state);
+      const aerosolExcluded = m.dispenser === 'aerosol' && ['2.2','2.5','2.6','2.7'].includes(def.ref);
+      if (excluded || aerosolExcluded || (def.ref === '2.3' && m.dispenser === 'ordinary')) {
+        a.status = 'Not applicable';
+        evidence.push('Supplied form: ' + m.state + ', packaging: ' + (m.dispenser || 'unspecified'));
+      }
+      if (def.ref === '2.6') {
+        evidence.push(...flam.steps);
+        if (flam.status === 'classified') a.status = 'Classified';
+        if (flam.status === 'not') a.status = reviewed;
+        if (flam.status === 'na') a.status = 'Not applicable';
+        if (['nodata','incomplete'].includes(flam.status)) a.next = flam.steps[flam.steps.length-1];
+      }
+      if (records.length) {
+        const x = records[0];
+        const complete = x.scope === 'finished' && [x.method,x.result,x.source].every(present);
+        const codes = String(x.h || '').trim().split(/[\s,;+]+/).filter(Boolean);
+        const labelMatches = def.ref !== '2.6' || ['H224','H225','H226'].some((c,k) =>
+          x.h === c && String(x.label).trim() === 'Flam. Liq. ' + (k+1) &&
+          x.picto === 'GHS02' && x.signal === (k===2 ? 'Warning' : 'Danger'));
+        const positive = labelMatches && x.decision === 'classified' && present(x.label) && codes.length > 0 && codes.every(c=>def.codes.includes(c));
+        const negative = x.decision === 'negative';
+        const conflict = records.length > 1 || (negative && (codes.length || x.signal || x.picto || x.extraPicto)) || (positive && ['Not applicable',reviewed].includes(a.status)) ||
+          (a.status === 'Classified' && (negative || (positive && String(x.h).trim() !== flam.outcomes[0].h[0])));
+        if (conflict) {
+          a.status = 'Insufficient data';
+          a.next = 'Resolve conflicting physical assessments before issuing the classification.';
+          if (def.ref === '2.6') { flam.outcomes = []; flam.status = 'incomplete'; flam.steps.push(a.next); }
+        } else if (complete && (positive || negative)) {
+          if (a.status !== 'Classified' && positive) a.manual = x;
+          if (positive) a.status = 'Classified';
+          else if (a.status !== 'Not applicable') a.status = reviewed;
+          if (def.ref === '2.6' && ['nodata','incomplete'].includes(flam.status)) {
+            flam.status = positive ? 'manual' : 'not';
+            flam.steps.push('Independently reviewed finished-liquid evidence: ' + x.source);
+          }
+        } else if (!['Classified',reviewed,'Not applicable'].includes(a.status)) {
+          a.next = 'Complete the finished-mixture review, method, result, source and applicable category and label elements.';
+        }
+      }
+      if (a.status === 'Not applicable') a.contributors = [];
+      if (['Classified',reviewed,'Not applicable'].includes(a.status)) a.next = 'Review if the formulation, evidence or supplied form changes.';
+      return a;
+    });
+  }
   function acute(mix, ings, ctx) {
     const H = hz('acute', 'Acute toxicity', 'Annex I 3.1.3.6 (cons. pp.138–139); Table 3.1.1 (p.134); conversions Table 3.1.2 (pp.139–140); cut-offs Table 1.1 (p.68)');
     const unknown = ings.filter((i) => {
@@ -1329,7 +1466,24 @@
     else if (Math.abs(total - 100) > 0.5) warnings.push(`Concentrations add up to ${fmt(total)} %, not 100 %. Classification uses the percentages as entered.`);
     if(total>100+EPS) warnings.push('DATA VALIDATION: Total mixture concentration exceeds 100%; SCL, ATE and aquatic summation results may be misleading. Correct the formulation.');
     const hazards = [];
-    hazards.push(flammability(m));
+    const flam = flammability(m);
+    const unknownPct = (m.ingredients || []).filter(i => !has(num(i.pct))).map(i => ({
+      name:i.name, pct:NaN, hcodeDetails:parseHCodeTokens(i.hcodes).codes
+    }));
+    const physical = physicalAssessment(m, ings.concat(unknownPct), flam);
+    // Annex I §2.17.2 note 3 excludes three additional classes for supply.
+    if (physical.find(a => a.ref === '2.17').status === 'Classified') {
+      for (const a of physical.filter(a => ['2.1','2.6','2.7'].includes(a.ref))) {
+        a.status = 'Not applicable';
+        delete a.manual;
+        a.next = 'Finished product classified under §2.17; see §2.17.2 note 3.';
+        a.evidence.push(a.next);
+      }
+      flam.status = 'na';
+      flam.outcomes = [];
+      flam.steps = ['Finished product classified under §2.17.'];
+    }
+    hazards.push(flam);
     hazards.push(acute(m, ings, ctx));
     hazards.push(...corrosionHazards(m, ings, ctx));
     hazards.push(...sensitisation(m, ings, ctx));
@@ -1340,10 +1494,22 @@
     hazards.push(...newClasses(m, ings, ctx));
     (m.manual || []).forEach((x, k) => {
       if (!x || !(x.label || x.h)) return;
+      const physicalCodes = parseHCodeTokens(x.h).codes.some(c => /^H2/.test(c.code));
+      if (!x.physicalClass && ((x.requirePhysicalReview && physicalCodes) ||
+          [x.scope,x.decision,x.method,x.result,x.source].some(present))) {
+        warnings.push('Select the physical hazard class for manual review ' + (k + 1) + '.');
+        return;
+      }
+      if (x.physicalClass && !physical.some(a => a.manual === x)) return;
+      if (!x.physicalClass && physical.some(a => a.manual && a.manual.h === x.h && a.manual.label === x.label)) return;
+      if (!x.physicalClass && /^H22[456]$/.test(String(x.h).trim()) && flam.outcomes.length) {
+        if (flam.outcomes[0].h[0] !== x.h) warnings.push('Manual flammable-liquid entry conflicts with the calculated category. Review before release.');
+        return;
+      }
       const H = hz('manual' + k, 'Manual entry: ' + (x.label || x.h), 'Entered by user (e.g. from test data)');
       H.status = 'classified';
-      H.steps.push('User-entered classification (not calculated).');
-      H.outcomes.push(out(x.label || x.h, x.h ? String(x.h).split(/[\s,;+]+/).filter(Boolean) : [], x.signal || null, x.picto ? [x.picto] : []));
+      H.steps.push(...(x.physicalClass ? physical.find(a => a.manual === x).evidence : ['User-entered classification (not calculated).']));
+      H.outcomes.push(out(x.label || x.h, x.h ? String(x.h).split(/[\s,;+]+/).filter(Boolean) : [], x.signal || null, [...new Set([x.picto, x.extraPicto].filter(Boolean))]));
       hazards.push(H);
     });
     /* label summary */
@@ -1405,7 +1571,7 @@
     if (outcomes.some((o) => ['ED HH 1', 'ED HH 2', 'ED ENV 1', 'ED ENV 2', 'PBT', 'vPvB', 'PMT', 'vPvM'].includes(o.label)))
       notes.push('New hazard classes: mixtures placed on the market before 1 May 2026 need not be classified/labelled for these classes until 1 May 2028 (3.11.3.4, 4.2.3.4, 4.3.3.2, 4.4.3.2).');
     return {
-      total, ingredientsUsed: ings.length, hazards, outcomes,
+      physical, total, ingredientsUsed: ings.length, hazards, outcomes,
       label: {
         signal: hasDanger ? 'Danger' : hasWarn ? 'Warning' : null,
         ...art26,
@@ -1429,6 +1595,8 @@
     L.push(`CLP MIXTURE CLASSIFICATION – ${anon ? '(name withheld)' : (m.name || '(unnamed mixture)')}`);
     L.push('Rules: Regulation (EC) 1272/2008 Annex I, consolidated 01.07.2026, ingredient-based (additivity / summation / generic concentration limits).');
     L.push(`Physical state: ${m.state}. Flash point: ${m.flashPoint || 'n/a'} °C; IBP: ${m.ibp || 'n/a'} °C; viscosity@40 °C: ${m.viscosity40 || 'n/a'} mm²/s; pH: ${m.pH || 'n/a'}${m.pHReserveOk ? ' (reserve marked non-corrosive)' : ''}.`);
+    L.push('', 'PHYSICAL HAZARD ASSESSMENT');
+    result.physical.forEach(a => L.push('§' + a.ref + ' ' + a.name + ' — ' + a.status, ...(anon ? [] : a.contributors), ...(anon ? [] : a.evidence), a.next));
     L.push('', 'INGREDIENTS (% w/w or v/v) and assumed ingredient classifications:');
     ings.forEach((i, k) => {
       const c = [];
@@ -1508,7 +1676,7 @@
     });
     if (result.sds.length) { L.push('', 'SDS-on-request triggers:'); result.sds.forEach((s) => L.push('- ' + s)); }
     if (result.warnings.length) { L.push('', 'Warnings:'); result.warnings.forEach((s) => L.push('- ' + s)); }
-    L.push('', 'Not modelled: bridging principles, tested-mixture data, aquatic additivity formula for tested ingredients, complete tested-mixture / substance-specific skin-eye evidence and unusual SCL category combinations, physical hazards other than flammable liquids, complete Article 28 Annex I/IV coverage and final P-statement approval, unvalidated manual Article 26(2) severity, and case-specific Article 27 label reviews.');
+    L.push('', 'Not modelled: bridging principles, tested-mixture data, aquatic additivity formula for tested ingredients, complete tested-mixture / substance-specific skin-eye evidence and unusual SCL category combinations, automatic physical-hazard calculations outside §2.6, complete Article 28 Annex I/IV coverage and final P-statement approval, unvalidated manual Article 26(2) severity, and case-specific Article 27 label reviews.');
     return L.join('\n');
   }
   function anonymiseText(s, ings) {
@@ -1517,5 +1685,5 @@
     return t;
   }
 
-  return { classify, report, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
+  return { PHYSICAL, classify, report, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
 });

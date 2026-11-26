@@ -144,7 +144,7 @@ The classification is always computed locally; Gemini never changes it.
 NOT MODELLED (do these yourself)
 Bridging principles; tested-mixture data (use "Manual classifications"); aquatic additivity
 formula for tested ingredients; full SCL category and scientifically justified
-skin/eye weight-of-evidence pathways; physical hazards other than flammable liquids;
+skin/eye weight-of-evidence pathways; automatic physical classification outside §2.6;
 Article 26(2) severity for unverified manual classifications, complete Annex I/IV P-statement coverage / final Article 28 selection and approved wording, and additional case-specific Article 27 redundancy decisions. Four explicit Annex III Article 27 omissions are implemented and tested.
 H-codes only give default categories (H300 -> Cat 1, H314 -> Skin Corr. 1 etc.): set sub-categories yourself.
 The parser preserves differentiated ingredient codes (H350i, H360F/D/FD/Fd/Df and H361f/d/fd)
@@ -301,3 +301,60 @@ DATA VALIDATION, DATA GAP, DATA REVIEW and EVIDENCE REVIEW warnings appear
 in the viewer independently of its optional visibility settings.
 This feature improves reliability; it does not replace expert review of
 specific substance evidence, experimental mixture data or complex CLP cases.
+
+PHYSICAL HAZARD ASSESSMENT (EU CLP)
+Open Physical Hazard Assessment in Results. Each panel identifies its Annex I
+section, contributing ingredients and their entered percentages, available
+mixture evidence and the next assessment. Potential concern and Insufficient
+data leave the label unchanged. Absence of a matching H-code cannot establish
+a negative result. A recorded physical form can exclude a state-specific
+class. Packaging matters separately, including liquefied gases and aerosols.
+
+The dashboard covers §§2.1–2.17 in regulatory order. Only flammable liquids
+(§2.6) have an automatic category calculation. Explosives, flammable gases,
+aerosols, oxidising gases, gases under pressure, flammable solids, self-reactive
+mixtures, pyrophoric liquids and solids, self-heating mixtures, water-reactive
+mixtures, oxidising liquids and solids, organic peroxides, metal corrosivity
+and desensitised explosives use screening and independent finished-product
+review. Check the applicable class criteria and use adequate existing data,
+a permitted alternative assessment or suitable test evidence (Article 8(2)).
+The calculator does not interpret raw tests for these classes.
+
+Under Mixture information, enter the finished-liquid flash point and, below
+23 °C, its initial boiling point. Under Physical form and flash-point evidence
+record the method, source and packaging. Table 2.6.1 assigns Categories 1/2
+below 23 °C (initial boiling point at most/above 35 °C respectively), and
+Category 3 from 23 through 60 °C. Table 2.6.2 provides the label elements.
+§2.6.4.1 requires a closed cup. Calculated values require independent review
+under §§2.6.4.2–3. This software does not implement that alternative pathway.
+Legacy saved values retain the original closed-cup field interpretation.
+Verify their provenance before relying on them.
+
+For a flash point above 35 through 60 °C, enter a negative finished-mixture
+UN L.2 result and its report to elect the §2.6.4.5 exception. An unreferenced
+negative result cannot establish the exception. The optional Table 2.6.1
+footnote covers qualifying gas oil, diesel and light heating oil from 55
+through 75 °C inclusive. Above 60 through 75 °C resolve the fuel election or
+confirm ordinary treatment. The product name never selects this provision.
+
+For example, an ingredient at 4% carrying H290 raises a metal-corrosion
+concern. Its percentage gives no finished-mixture category. If a competent
+review independently establishes Met. Corr. 1, add a manual entry, select
+§2.16, record the finished-mixture scope, method, result and source, and choose
+Independently classified. Enter H290, Warning and GHS05 from the review.
+Only then does the new entry contribute to the label. The same form can
+record a reviewed negative decision without label elements. Add units,
+document/date and notes as appropriate. Supply one consolidated decision per
+class. Multiple structured decisions for a class require reconciliation.
+Existing general manual entries remain user assertions; link their evidence
+when updating a saved formulation. Reviewers must verify the complete manual
+category and label elements, including any mandatory co-pictograms.
+
+Sources: Regulation (EC) No 1272/2008, Annex I Part 2, class-specific hazard
+communication tables and Annex III Part 1 Table 1.1 (physical hazard codes).
+Aerosol exclusions: §2.3.2; desensitised explosives: §2.17.2, note 3.
+https://eur-lex.europa.eu/eli/reg/2008/1272/2026-07-01/eng
+ECHA, Guidance on the Application of the CLP Criteria, Part 2, Physical Hazards,
+and mixture hazard class table:
+https://echa.europa.eu/guidance-documents/guidance-on-clp
+https://echa.europa.eu/en/support/mixture-classification/hazard-class-table
