@@ -1041,65 +1041,666 @@
 
 
   /* ARTICLE 22 + ARTICLE 28 / ANNEX IV.
-     This is a conservative, explicitly PARTIAL candidate selector, not a final
-     regulatory P-statement database. It keeps candidate and review trails separate.
-     No individual P-code is automatically labelled "mandatory" solely by H-code.
-     Article 28(2) does impose a qualified CONSUMER DISPOSAL statement requirement.
-     Annex IV Part 1 tables 6.1-6.5 are the selection source; Part 2 is wording.
+     Candidates come from the complete Annex IV Part 1 table (Tables 6.1-6.5) embedded below, keyed by hazard class
+     and category, with each statement's "conditions for use". Classes added by Regulation (EU) 2023/707 (ED, PBT/vPvB,
+     PMT/vPvM) have no Annex IV Part 1 rows; their statements come from the Annex I label tables.
+     The hazard class and category is read from the outcome label (Annex VI Table 1.1 codes, e.g. "Org. Perox. CD");
+     when only H-codes are known and they fit several classes (e.g. H242), statements that do not apply to all of
+     them are held for confirmation.
+     Conditional statements (e.g. "— if the liquid is volatile") are held as "condition pending" until the supplier
+     confirms them (manual addition). No individual P-code is labelled "mandatory" by H-code; Article 28(2) imposes
+     a qualified CONSUMER DISPOSAL statement requirement. Priorities only order the six-statement draft: Article 28
+     and Annex IV set no order, so the draft is provisional (Article 28(3)).
   */
-  const P28_RULES = Object.freeze([
-    {code:'P101', text:'If medical advice is needed, have product container or label at hand.', consumer:true, priority:30, group:'general', basis:'Annex IV Table 6.1, consumer products'},
-    {code:'P102', text:'Keep out of reach of children.', consumer:true, priority:80, group:'general', basis:'Annex IV Table 6.1, consumer products'},
-    {code:'P103', text:'Read carefully and follow all instructions.', consumer:true, priority:25, group:'general', basis:'Annex IV Table 6.1, consumer products; omit if P202 is used'},
-    {code:'P210', text:'Keep away from heat, hot surfaces, sparks, open flames and other ignition sources. No smoking.', h:['H224','H225','H226'], priority:95, group:'prevention', basis:'Annex IV Table 6.2, flammable liquids 1-3'},
-    {code:'P202', text:'Do not handle until all safety precautions have been read and understood.', h:['H340','H341','H350','H350i','H351','H360*','H361*','H362'], priority:86, group:'prevention', basis:'Annex IV Table 6.2, CMR / lactation'},
-    {code:'P280', text:'Wear protective gloves/protective clothing/eye protection/face protection/…', h:['H224','H225','H226','H314','H315','H317','H318','H319','H340','H341','H350','H350i','H351','H360*','H361*'], priority:65, group:'prevention', needs:'ppe', basis:'Annex IV Table 6.2; specify suitable protective equipment'},
-    {code:'P273', text:'Avoid release to the environment.', h:['H400','H410','H411','H412','H413'], priority:64, group:'prevention', condition:'only where release is not the intended use', basis:'Annex IV Table 6.2, aquatic hazard; intended use'},
-    {code:'P261', text:'Avoid breathing dust/fume/gas/mist/vapours/spray.', h:['H317','H334','H335','H336','H332'], priority:57, group:'prevention', needs:'exposure', basis:'Annex IV Table 6.2; specify exposure medium'},
-    {code:'P260', text:'Do not breathe dust/fume/gas/mist/vapours/spray.', h:['H330','H370','H371','H372','H373','H362'], priority:79, group:'prevention', needs:'exposure', basis:'Annex IV Table 6.2; check exact category/exposure medium'},
-    {code:'P301+P330+P331', text:'IF SWALLOWED: Rinse mouth. Do NOT induce vomiting.', h:['H314'], priority:90, group:'response', basis:'Annex IV Table 6.3, skin corrosion'},
-    {code:'P305+P351+P338', text:'IF IN EYES: Rinse cautiously with water for several minutes. Remove contact lenses, if present and easy to do. Continue rinsing.', h:['H314','H318','H319'], priority:95, group:'response', basis:'Annex IV Table 6.3, skin corrosion / eye damage or irritation'},
-    {code:'P303+P361+P353', text:'IF ON SKIN (or hair): Take off immediately all contaminated clothing. Rinse skin with water [or shower].', h:['H314','H224','H225','H226'], priority:71, group:'response', basis:'Annex IV Table 6.3, skin corrosion / flammable liquids', condition:'square-bracket alternatives require review'},
-    {code:'P302+P352', text:'IF ON SKIN: Wash with plenty of water/…', h:['H315','H317'], priority:62, group:'response', needs:'wash', basis:'Annex IV Table 6.3, irritation/sensitisation'},
-    {code:'P333+P313', text:'If skin irritation or rash occurs: Get medical advice/attention.', h:['H317'], priority:62, group:'response', basis:'Annex IV Table 6.3, skin sensitisation'},
-    {code:'P337+P313', text:'If eye irritation persists: Get medical advice/attention.', h:['H319'], priority:50, group:'response', basis:'Annex IV Table 6.3, eye irritation 2'},
-    {code:'P301+P310', text:'IF SWALLOWED: Immediately call a POISON CENTER/doctor/…', h:['H300','H301','H304'], priority:94, group:'response', needs:'emergency', basis:'Annex IV Table 6.3, acute oral 1-3 / aspiration 1'},
-    {code:'P301+P312', text:'IF SWALLOWED: Call a POISON CENTER/doctor/… if you feel unwell.', h:['H302'], priority:78, group:'response', needs:'emergency', basis:'Annex IV Table 6.3, acute oral 4'},
-    {code:'P331', text:'Do NOT induce vomiting.', h:['H304'], priority:86, group:'response', basis:'Annex IV Table 6.3, aspiration hazard 1'},
-    {code:'P304+P340', text:'IF INHALED: Remove person to fresh air and keep comfortable for breathing.', h:['H330','H331','H332','H334','H335','H336'], priority:78, group:'response', basis:'Annex IV Table 6.3, acute inhalation / respiratory sensitisation / STOT SE3'},
-    {code:'P308+P313', text:'IF exposed or concerned: Get medical advice/attention.', h:['H340','H341','H350','H350i','H351','H360*','H361*','H362'], priority:81, group:'response', basis:'Annex IV Table 6.3, CMR / lactation'},
-    {code:'P501', text:'Dispose of contents/container to …', h:['H224','H225','H226','H300','H301','H302','H310','H311','H312','H314','H317','H330','H331','H334','H340','H341','H350','H350i','H351','H360*','H361*','H370','H371','H372','H373','H304','H335','H336','H400','H410','H411','H412','H413'], priority:65, group:'disposal', needs:'disposal', basis:'Annex IV Table 6.5; Article 28(2) for the general public, subject to Article 22'}
-  ]);
+  /* BEGIN GENERATED ANNEX IV TABLE (verification/build_annex_iv.js; do not edit by hand) */
+  // Regulation (EC) No 1272/2008 (CLP), consolidated version 2027-01-01 (02008R1272-20270101, retrieved 2026-11-27). EU legal text reused with credit to the source (EUR-Lex). Changes: extracted from the consolidated text and restructured as JSON; statement wording unchanged.
+  const ANNEX_IV = Object.freeze({
+    source:"Regulation (EC) No 1272/2008 (CLP), consolidated version 2027-01-01, Annex IV Part 1 (Tables 6.1-6.5); 02008R1272-20270101",
+    // [code, official English wording (Part 1, column 2), table group]
+    statements:[
+      ["P101","If medical advice is needed, have product container or label at hand.","general"],
+      ["P102","Keep out of reach of children.","general"],
+      ["P103","Read carefully and follow all instructions.","general"],
+      ["P201","Obtain special instructions before use.","prevention"],
+      ["P202","Do not handle until all safety precautions have been read and understood.","prevention"],
+      ["P210","Keep away from heat, hot surfaces, sparks, open flames and other ignition sources. No smoking.","prevention"],
+      ["P211","Do not spray on an open flame or other ignition source.","prevention"],
+      ["P212","Avoid heating under confinement or reduction of the desensitising agent.","prevention"],
+      ["P220","Keep away from clothing and other combustible materials.","prevention"],
+      ["P222","Do not allow contact with air.","prevention"],
+      ["P223","Do not allow contact with water.","prevention"],
+      ["P230","Keep wetted with …","prevention"],
+      ["P231","Handle and store contents under inert gas/…","prevention"],
+      ["P232","Protect from moisture.","prevention"],
+      ["P233","Keep container tightly closed.","prevention"],
+      ["P234","Keep only in original packaging.","prevention"],
+      ["P235","Keep cool.","prevention"],
+      ["P240","Ground and bond container and receiving equipment.","prevention"],
+      ["P241","Use explosion-proof [electrical/ventilating/lighting/…] equipment.","prevention"],
+      ["P242","Use non-sparking tools.","prevention"],
+      ["P243","Take action to prevent static discharges.","prevention"],
+      ["P244","Keep valves and fittings free from oil and grease.","prevention"],
+      ["P250","Do not subject to grinding/shock/friction …","prevention"],
+      ["P251","Do not pierce or burn, even after use.","prevention"],
+      ["P260","Do not breathe dust/fume/gas/mist/vapours/spray.","prevention"],
+      ["P261","Avoid breathing dust/fume/gas/mist/vapours/spray.","prevention"],
+      ["P262","Do not get in eyes, on skin, or on clothing.","prevention"],
+      ["P263","Avoid contact during pregnancy and while nursing.","prevention"],
+      ["P264","Wash … thoroughly after handling.","prevention"],
+      ["P270","Do not eat, drink or smoke when using this product.","prevention"],
+      ["P271","Use only outdoors or in a well-ventilated area.","prevention"],
+      ["P272","Contaminated work clothing should not be allowed out of the workplace.","prevention"],
+      ["P273","Avoid release to the environment.","prevention"],
+      ["P280","Wear protective gloves/protective clothing/eye protection/face protection/hearing protection/…","prevention"],
+      ["P282","Wear cold insulating gloves and either face shield or eye protection.","prevention"],
+      ["P283","Wear fire resistant or flame retardant clothing.","prevention"],
+      ["P284","[In case of inadequate ventilation] wear respiratory protection.","prevention"],
+      ["P231+P232","Handle and store contents under inert gas/… Protect from moisture.","prevention"],
+      ["P301","IF SWALLOWED:","response"],
+      ["P302","IF ON SKIN:","response"],
+      ["P303","IF ON SKIN (or hair):","response"],
+      ["P304","IF INHALED:","response"],
+      ["P305","IF IN EYES:","response"],
+      ["P306","IF ON CLOTHING:","response"],
+      ["P308","IF exposed or concerned:","response"],
+      ["P310","Immediately call a POISON CENTER/doctor/…","response"],
+      ["P311","Call a POISON CENTER/doctor/…","response"],
+      ["P312","Call a POISON CENTRE/doctor/… if you feel unwell.","response"],
+      ["P313","Get medical advice/attention.","response"],
+      ["P314","Get medical advice/attention if you feel unwell.","response"],
+      ["P315","Get immediate medical advice/attention.","response"],
+      ["P320","Specific treatment is urgent (see … on this label).","response"],
+      ["P321","Specific treatment (see … on this label).","response"],
+      ["P330","Rinse mouth.","response"],
+      ["P331","Do NOT induce vomiting.","response"],
+      ["P332","If skin irritation occurs:","response"],
+      ["P333","If skin irritation or rash occurs:","response"],
+      ["P334","Immerse in cool water [or wrap in wet bandages].","response"],
+      ["P335","Brush off loose particles from skin.","response"],
+      ["P336","Thaw frosted parts with lukewarm water. Do not rub affected area.","response"],
+      ["P337","If eye irritation persists:","response"],
+      ["P338","Remove contact lenses, if present and easy to do. Continue rinsing.","response"],
+      ["P340","Remove person to fresh air and keep comfortable for breathing.","response"],
+      ["P342","If experiencing respiratory symptoms:","response"],
+      ["P351","Rinse cautiously with water for several minutes.","response"],
+      ["P352","Wash with plenty of water/…","response"],
+      ["P353","Rinse skin with water [or shower].","response"],
+      ["P360","Rinse immediately contaminated clothing and skin with plenty of water before removing clothes.","response"],
+      ["P361","Take off immediately all contaminated clothing.","response"],
+      ["P362","Take off contaminated clothing.","response"],
+      ["P363","Wash contaminated clothing before reuse.","response"],
+      ["P364","And wash it before reuse.","response"],
+      ["P370","In case of fire:","response"],
+      ["P371","In case of major fire and large quantities:","response"],
+      ["P372","Explosion risk.","response"],
+      ["P373","DO NOT fight fire when fire reaches explosives.","response"],
+      ["P375","Fight fire remotely due to the risk of explosion.","response"],
+      ["P376","Stop leak if safe to do so.","response"],
+      ["P377","Leaking gas fire: Do not extinguish, unless leak can be stopped safely.","response"],
+      ["P378","Use … to extinguish.","response"],
+      ["P380","Evacuate area.","response"],
+      ["P381","In case of leakage, eliminate all ignition sources","response"],
+      ["P390","Absorb spillage to prevent material damage.","response"],
+      ["P391","Collect spillage.","response"],
+      ["P301+P310","IF SWALLOWED: Immediately call a POISON CENTER/doctor/…","response"],
+      ["P301+P312","IF SWALLOWED: Call a POISON CENTER/doctor/… if you feel unwell","response"],
+      ["P302+P334","IF ON SKIN: Immerse in cool water or wrap in wet bandages.","response"],
+      ["P302+P352","IF ON SKIN: Wash with plenty of water/…","response"],
+      ["P304+P340","IF INHALED: Remove person to fresh air and keep comfortable for breathing.","response"],
+      ["P306+P360","IF ON CLOTHING: Rinse immediately contaminated clothing and skin with plenty of water before removing clothes.","response"],
+      ["P308+P311","IF exposed or concerned: Call a POISON CENTER/doctor/…","response"],
+      ["P308+P313","IF exposed or concerned: Get medical advice/attention.","response"],
+      ["P332+P313","If skin irritation occurs: Get medical advice/attention.","response"],
+      ["P333+P313","If skin irritation or rash occurs: Get medical advice/attention.","response"],
+      ["P336+P315","Thaw frosted parts with lukewarm water. Do not rub affected area. Get immediate medical advice/attention.","response"],
+      ["P337+P313","If eye irritation persists: Get medical advice/attention.","response"],
+      ["P342+P311","If experiencing respiratory symptoms: Call a POISON CENTER/doctor/…","response"],
+      ["P361+P364","Take off immediately all contaminated clothing and wash it before reuse.","response"],
+      ["P362+P364","Take off contaminated clothing and wash it before reuse.","response"],
+      ["P370+P376","In case of fire: Stop leak if safe to do so.","response"],
+      ["P370+P378","In case of fire: Use … to extinguish.","response"],
+      ["P301+P330+P331","IF SWALLOWED: Rinse mouth. Do NOT induce vomiting.","response"],
+      ["P302+P335+P334","IF ON SKIN: Brush off loose particles from skin. Immerse in cool water [or wrap in wet bandages].","response"],
+      ["P303+P361+P353","IF ON SKIN (or hair): Take off immediately all contaminated clothing. Rinse skin with water [or shower].","response"],
+      ["P305+P351+P338","IF IN EYES: Rinse cautiously with water for several minutes. Remove contact lenses, if present and easy to do. Continue rinsing.","response"],
+      ["P370+P380+P375","In case of fire: Evacuate area. Fight fire remotely due to the risk of explosion.","response"],
+      ["P371+P380+P375","In case of major fire and large quantities: Evacuate area. Fight fire remotely due to the risk of explosion.","response"],
+      ["P370+P372+P380+P373","In case of fire: Explosion risk. Evacuate area. DO NOT fight fire when fire reaches explosives","response"],
+      ["P370+P380+P375+[P378]","In case of fire: Evacuate area. Fight fire remotely due to the risk of explosion. [Use … to extinguish].","response"],
+      ["P401","Store in accordance with …","storage"],
+      ["P402","Store in a dry place.","storage"],
+      ["P403","Store in a well-ventilated place.","storage"],
+      ["P404","Store in a closed container.","storage"],
+      ["P405","Store locked up.","storage"],
+      ["P406","Store in a corrosion-resistant/… container with a resistant inner liner.","storage"],
+      ["P407","Maintain air gap between stacks or pallets.","storage"],
+      ["P410","Protect from sunlight.","storage"],
+      ["P411","Store at temperatures not exceeding … °C/… °F.","storage"],
+      ["P412","Do not expose to temperatures exceeding 50 °C/ 122 °F.","storage"],
+      ["P413","Store bulk masses greater than … kg/… lbs at temperatures not exceeding … °C/… °F.","storage"],
+      ["P420","Store separately.","storage"],
+      ["P402+P404","Store in a dry place. Store in a closed container.","storage"],
+      ["P403+P233","Store in a well-ventilated place. Keep container tightly closed.","storage"],
+      ["P403+P235","Store in a well-ventilated place. Keep cool.","storage"],
+      ["P410+P403","Protect from sunlight. Store in a well-ventilated place.","storage"],
+      ["P410+P412","Protect from sunlight. Do not expose to temperatures exceeding 50 °C/122 °F.","storage"],
+      ["P501","Dispose of contents/container to …","disposal"],
+      ["P502","Refer to manufacturer or supplier for information on recovery or recycling","disposal"],
+      ["P503","Refer to manufacturer/ supplier/… for information on disposal/recovery/ recycling","disposal"],
+    ],
+    // Annex IV Part 1 column 5 "conditions for use"; index 0 = none
+    conditions:[
+      "",
+      "Consumer products – omit where P202 is used",
+      "— if emphasis of the hazard statement is deemed necessary .",
+      "— if emphasis of the hazard statement is deemed necessary",
+      "Manufacturer/supplier to specify appropriate material — for substances and mixtures which are wetted, diluted, dissolved or suspended with a phlegmatiser in order to suppress their explosive properties",
+      "Manufacturer/supplier to specify appropriate material",
+      "… Manufacturer/supplier to specify appropriate liquid or gas if ‘inert gas’ is not appropriate.",
+      "— if the substance or mixture reacts readily with moisture in air. … Manufacturer/supplier to specify appropriate liquid or gas if ‘inert gas’ is not appropriate.",
+      "— if the liquid is volatile and may generate an explosive atmosphere",
+      "— if the chemical is volatile and may generate a hazardous atmosphere",
+      "— for flammable liquids category 1 and other flammable liquids that are volatile and may generate an explosive atmosphere",
+      "— may be omitted if P411 is given on the label",
+      "— may be omitted if P413 is given on the label",
+      "— if the explosive is electrostatically sensitive",
+      "— if the solid is electrostatically sensitive",
+      "— if electrostatically sensitive and able to generate an explosive atmosphere",
+      "— if the liquid is volatile and may generate an explosive atmosphere. — text in square brackets may be used to specify specific electrical, ventilating, lighting or other equipment if necessary and as appropriate.",
+      "— if dust clouds can occur. — text in square brackets may be used to specify specific electrical, ventilating, lighting or other equipment if necessary and as appropriate.",
+      "— if the liquid is volatile and may generate an explosive atmosphere and if the minimum ignition energy is very low. (This applies to substances and mixtures where the ignition energy is < 0,1 mJ, e.g. carbon disulphide).",
+      "— if the liquid is volatile and may generate an explosive atmosphere.",
+      "— if the explosive is mechanically sensitive … Manufacturer/supplier to specify applicable rough handling.",
+      "Manufacturer/supplier to specify applicable conditions.",
+      "— Specify do not breathe dusts or mists. — if inhalable particles of dusts or mists may occur during use.",
+      "— may be omitted if P260 is given on the label Manufacturer/supplier to specify applicable conditions.",
+      "Manufacturer/supplier to specify parts of the body to be washed after handling.",
+      "— if this is not the intended use.",
+      "Manufacturer/supplier to specify the appropriate type of personal protective equipment.",
+      "— Specify protective gloves/clothing. Manufacturer/supplier may further specify type of equipment where appropriate.",
+      "— Specify protective gloves/clothing and eye/face protection. Manufacturer/supplier may further specify type of equipment where appropriate.",
+      "— Specify protective gloves. Manufacturer/supplier may further specify type of equipment where appropriate.",
+      "— Specify eye/face protection. Manufacturer/supplier may further specify type of equipment where appropriate.",
+      "— text in square brackets may be used if additional information is provided with the chemical at the point of use that explains what type of ventilation would be adequate for safe use. Manufacturer/supplier to specify equipment.",
+      "… Manufacturer/supplier to specify the appropriate liquid or gas if ‘inert gas’ is not appropriate.",
+      "…Manufacturer/supplier to specify the appropriate source of emergency medical advice.",
+      "… Manufacturer/supplier to specify the appropriate source of emergency medical advice.",
+      "— if immediate administration of antidote is required. … Reference to supplemental first aid instruction.",
+      "— if immediate measures such as specific cleansing agent are advised. … Reference to supplemental first aid instruction.",
+      "— if immediate specific measures are required. … Reference to supplemental first aid instruction.",
+      "… Reference to supplemental first aid instruction. Manufacturer/supplier may specify a cleansing agent if appropriate.",
+      "— if immediate measures are required. … Reference to supplemental first aid instruction.",
+      "may be omitted if P333 is given on the label.",
+      "— text in square brackets to be used for pyrophoric liquids and solids",
+      "Use only ‘immerse in cool water.’ Text in square brackets should not be used.",
+      "…Manufacturer/supplier may specify a cleansing agent if appropriate, or may recommend an alternative agent in exceptional cases if water is clearly inappropriate.",
+      "— text in square brackets to be included where the manufacturer/supplier considers it appropriate for the specific chemical.",
+      "— except for explosives of division 1.4 (compatibility group S) in transport packaging.",
+      "— for explosives of division 1.4 (compatibility group S) in transport packaging.",
+      "— if water increases risk … Manufacturer/supplier to specify appropriate media",
+      "… Manufacturer/supplier to specify the appropriate source of emergency medical advice",
+      "— may be omitted when P333 + P313 is given on the label.",
+      "— if water increases risk. … Manufacturer/sup-plier to specify appropriate media.",
+      "— text in square brackets to be used for pyrophoric solids",
+      "— use only ‘Immerse in cold water’. Text in square brackets should not be used.",
+      "— for explosives of division 1.4 (compatibility group S) in transport packaging",
+      "— text in square brackets to be used if water increases risk. … Manufacturer/supplier to specify appropriate media.",
+      "… Manufacturer/supplier to specify local/regional/national/international regulations as applicable.",
+      "— for flammable liquids Category 1 and other flammable liquids that are volatile and may generate an explosive atmosphere.",
+      "— except for temperature controlled self-reactive substances and mixtures or organic peroxides because condensation and consequent freezing may take place.",
+      "— if the substance or mixture is volatile and may generate a hazardous atmosphere.",
+      "— may be omitted if P234 is given on the label … Manufacturer/supplier to specify other compatible materials.",
+      "— may be omitted for gases filled in transportable gas cylinders in accordance with packing instruction P200 of the UN RTDG, Model Regulations, unless those gases are subject to (slow) decomposition or polymerisation",
+      "— if temperature control is required (according to Annex I, Section 2.8.2.4 or 2.15.2.3) or if otherwise deemed necessary. … Manufacturer/supplier to specify temperature using the applicable temperature scale.",
+      "Manufacturer/supplier to use applicable temperature scale.",
+      "… Manufacturer/supplier to specify mass and temperature using applicable scale.",
+      "— P410 may be omitted for gases filled in transportable gas cylinders in accordance with packing instruction P200 of the UN RTDG, unless those gases are subject to (slow) decomposition or polymerisation.",
+      "Manufacturer/ supplier to use applicable temperature scale.",
+      "… in accordance with local/regional/national/international regulation (to be specified). Manufacturer/supplier to specify whether disposal requirements apply to contents, container or both.",
+      "… Manufacturer/supplier to specify appropriate source of information in accordance with local/regional/national/international regulations as applicable.",
+    ],
+    // hazard class|category -> {code: condition index}
+    byClass:{
+      "explosives|Unstable explosive":{"P201":0,"P250":20,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P401":55,"P503":67},
+      "mutagenicity|1A":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "mutagenicity|1B":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "mutagenicity|2":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "carcinogenicity|1A":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "carcinogenicity|1B":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "carcinogenicity|2":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "reproductive_toxicity|1A":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "reproductive_toxicity|1B":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "reproductive_toxicity|2":{"P201":1,"P202":0,"P280":26,"P308":0,"P313":0,"P308+P313":0,"P405":0,"P501":66},
+      "lactation|Additional category":{"P201":1,"P202":0,"P260":22,"P263":0,"P264":24,"P270":0,"P308":0,"P313":0,"P308+P313":0},
+      "flammable_gases|A":{"P202":0,"P210":0,"P377":0,"P381":0,"P403":0},
+      "flammable_gases|B":{"P202":0,"P210":0,"P377":0,"P381":0,"P403":0},
+      "explosives|1.1":{"P210":0,"P230":4,"P234":0,"P240":13,"P250":20,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P401":55,"P503":67},
+      "explosives|1.2":{"P210":0,"P230":4,"P234":0,"P240":13,"P250":20,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P401":55,"P503":67},
+      "explosives|1.3":{"P210":0,"P230":4,"P234":0,"P240":13,"P250":20,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P401":55,"P503":67},
+      "explosives|1.4":{"P210":0,"P234":0,"P240":13,"P250":20,"P280":26,"P370":0,"P372":45,"P373":45,"P375":46,"P380":0,"P370+P380+P375":53,"P370+P372+P380+P373":45,"P401":55,"P503":67},
+      "explosives|1.5":{"P210":0,"P230":4,"P234":0,"P240":13,"P250":20,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P401":55,"P503":67},
+      "flammable_gases|1A":{"P210":0,"P377":0,"P381":0,"P403":0},
+      "flammable_gases|1B":{"P210":0,"P377":0,"P381":0,"P403":0},
+      "flammable_gases|2":{"P210":0,"P377":0,"P381":0,"P403":0},
+      "aerosols|1":{"P210":0,"P211":0,"P251":0,"P410":0,"P412":62,"P410+P412":65},
+      "aerosols|2":{"P210":0,"P211":0,"P251":0,"P410":0,"P412":62,"P410+P412":65},
+      "aerosols|3":{"P210":0,"P251":0,"P410":0,"P412":62,"P410+P412":65},
+      "flammable_liquids|1":{"P210":0,"P233":8,"P235":10,"P240":8,"P241":16,"P242":18,"P243":19,"P280":26,"P303":0,"P353":44,"P361":0,"P370":0,"P378":47,"P370+P378":50,"P303+P361+P353":44,"P403":56,"P403+P235":56,"P501":66},
+      "flammable_liquids|2":{"P210":0,"P233":8,"P235":10,"P240":8,"P241":16,"P242":18,"P243":19,"P280":26,"P303":0,"P353":44,"P361":0,"P370":0,"P378":47,"P370+P378":50,"P303+P361+P353":44,"P403":56,"P403+P235":56,"P501":66},
+      "flammable_liquids|3":{"P210":0,"P233":8,"P235":10,"P240":8,"P241":16,"P242":18,"P243":19,"P280":26,"P303":0,"P353":44,"P361":0,"P370":0,"P378":47,"P370+P378":50,"P303+P361+P353":44,"P403":56,"P403+P235":56,"P501":66},
+      "flammable_solids|1":{"P210":0,"P240":14,"P241":17,"P280":26,"P370":0,"P378":47,"P370+P378":50},
+      "flammable_solids|2":{"P210":0,"P240":14,"P241":17,"P280":26,"P370":0,"P378":47,"P370+P378":50},
+      "self_reactive|A":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P403":57,"P411":61,"P420":0,"P501":66},
+      "self_reactive|B":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P375":0,"P378":47,"P380":0,"P370+P380+P375+[P378]":54,"P403":57,"P411":61,"P420":0,"P501":66},
+      "self_reactive|C":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P411":61,"P420":0,"P501":66},
+      "self_reactive|D":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P411":61,"P420":0,"P501":66},
+      "self_reactive|E":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P411":61,"P420":0,"P501":66},
+      "self_reactive|F":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P411":61,"P420":0,"P501":66},
+      "pyrophoric_liquids|1":{"P210":0,"P222":2,"P231":6,"P233":0,"P280":26,"P231+P232":32,"P302":0,"P334":41,"P370":0,"P378":47,"P302+P334":0,"P370+P378":50},
+      "pyrophoric_solids|1":{"P210":0,"P222":2,"P231":6,"P233":0,"P280":26,"P231+P232":32,"P302":0,"P334":41,"P335":0,"P370":0,"P378":47,"P370+P378":50,"P302+P335+P334":51},
+      "oxidising_liquids|1":{"P210":0,"P220":0,"P280":26,"P283":0,"P306":0,"P360":0,"P370":0,"P371":0,"P375":0,"P378":47,"P380":0,"P306+P360":0,"P370+P378":50,"P371+P380+P375":0,"P420":0,"P501":66},
+      "oxidising_liquids|2":{"P210":0,"P220":0,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P501":66},
+      "oxidising_liquids|3":{"P210":0,"P220":0,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P501":66},
+      "oxidising_solids|1":{"P210":0,"P220":0,"P280":26,"P283":0,"P306":0,"P360":0,"P370":0,"P371":0,"P375":0,"P378":47,"P380":0,"P306+P360":0,"P370+P378":50,"P371+P380+P375":0,"P420":0,"P501":66},
+      "oxidising_solids|2":{"P210":0,"P220":0,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P501":66},
+      "oxidising_solids|3":{"P210":0,"P220":0,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P501":66},
+      "organic_peroxides|A":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P372":0,"P373":0,"P380":0,"P370+P372+P380+P373":0,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "organic_peroxides|B":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P375":0,"P378":47,"P380":0,"P370+P380+P375+[P378]":54,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "organic_peroxides|C":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "organic_peroxides|D":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "organic_peroxides|E":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "organic_peroxides|F":{"P210":0,"P234":0,"P235":11,"P240":15,"P280":26,"P370":0,"P378":47,"P370+P378":50,"P403":57,"P410":0,"P411":61,"P420":0,"P501":66},
+      "desensitised_explosives|1":{"P210":0,"P212":0,"P230":5,"P233":0,"P280":26,"P370":0,"P375":0,"P380":0,"P370+P380+P375":0,"P401":55,"P501":66},
+      "desensitised_explosives|2":{"P210":0,"P212":0,"P230":5,"P233":0,"P280":26,"P370":0,"P375":0,"P380":0,"P370+P380+P375":0,"P401":55,"P501":66},
+      "desensitised_explosives|3":{"P210":0,"P212":0,"P230":5,"P233":0,"P280":26,"P370":0,"P375":0,"P380":0,"P370+P380+P375":0,"P401":55,"P501":66},
+      "desensitised_explosives|4":{"P210":0,"P212":0,"P230":5,"P233":0,"P280":26,"P371":0,"P375":0,"P380":0,"P371+P380+P375":0,"P401":55,"P501":66},
+      "oxidising_gases|1":{"P220":0,"P244":0,"P370":0,"P376":0,"P370+P376":0,"P403":0},
+      "flammable_gases|Pyrophoric gas":{"P222":2,"P280":26,"P210":0,"P377":0,"P381":0,"P403":0},
+      "water_reactive|1":{"P223":3,"P231":7,"P232":0,"P280":26,"P231+P232":7,"P302":0,"P334":42,"P335":0,"P370":0,"P378":47,"P370+P378":50,"P302+P335+P334":52,"P402":0,"P404":0,"P402+P404":0,"P501":66},
+      "water_reactive|2":{"P223":3,"P231":7,"P232":0,"P280":26,"P231+P232":7,"P302":0,"P334":42,"P335":0,"P370":0,"P378":47,"P370+P378":50,"P302+P335+P334":52,"P402":0,"P404":0,"P402+P404":0,"P501":66},
+      "water_reactive|3":{"P231":7,"P232":0,"P280":26,"P231+P232":7,"P370":0,"P378":47,"P370+P378":50,"P402":0,"P404":0,"P402+P404":0,"P501":66},
+      "acute_inhalation|1":{"P233":9,"P260":21,"P271":0,"P284":31,"P304":0,"P310":33,"P320":35,"P340":0,"P304+P340":0,"P403":58,"P405":0,"P403+P233":58,"P501":66},
+      "acute_inhalation|2":{"P233":9,"P260":21,"P271":0,"P284":31,"P304":0,"P310":33,"P320":35,"P340":0,"P304+P340":0,"P403":58,"P405":0,"P403+P233":58,"P501":66},
+      "acute_inhalation|3":{"P233":9,"P261":23,"P271":0,"P304":0,"P311":33,"P321":37,"P340":0,"P304+P340":0,"P403":58,"P405":0,"P403+P233":58,"P501":66},
+      "stot_se_3_resp|3":{"P233":9,"P261":23,"P271":0,"P304":0,"P312":34,"P340":0,"P304+P340":0,"P403":58,"P405":0,"P403+P233":58,"P501":66},
+      "stot_se_3_narc|3":{"P233":9,"P261":23,"P271":0,"P304":0,"P312":34,"P340":0,"P304+P340":0,"P403":58,"P405":0,"P403+P233":58,"P501":66},
+      "corrosive_to_metals|1":{"P234":0,"P390":0,"P406":59},
+      "self_heating|1":{"P235":12,"P280":26,"P407":0,"P410":0,"P413":63,"P420":0},
+      "self_heating|2":{"P235":12,"P280":26,"P407":0,"P410":0,"P413":63,"P420":0},
+      "stot_se|1":{"P260":21,"P264":24,"P270":0,"P308":0,"P311":33,"P321":39,"P308+P311":33,"P405":0,"P501":66},
+      "stot_se|2":{"P260":21,"P264":24,"P270":0,"P308":0,"P311":33,"P308+P311":33,"P405":0,"P501":66},
+      "stot_re|1":{"P260":21,"P264":24,"P270":0,"P314":0,"P501":66},
+      "stot_re|2":{"P260":21,"P314":0,"P501":66},
+      "skin_corrosion|1A":{"P260":22,"P264":24,"P280":28,"P301":0,"P303":0,"P304":0,"P305":0,"P310":33,"P321":38,"P330":0,"P331":0,"P338":0,"P340":0,"P351":0,"P353":44,"P361":0,"P363":0,"P304+P340":0,"P301+P330+P331":0,"P303+P361+P353":44,"P305+P351+P338":0,"P405":0,"P501":66},
+      "skin_corrosion|1B":{"P260":22,"P264":24,"P280":28,"P301":0,"P303":0,"P304":0,"P305":0,"P310":33,"P321":38,"P330":0,"P331":0,"P338":0,"P340":0,"P351":0,"P353":44,"P361":0,"P363":0,"P304+P340":0,"P301+P330+P331":0,"P303+P361+P353":44,"P305+P351+P338":0,"P405":0,"P501":66},
+      "skin_corrosion|1C":{"P260":22,"P264":24,"P280":28,"P301":0,"P303":0,"P304":0,"P305":0,"P310":33,"P321":38,"P330":0,"P331":0,"P338":0,"P340":0,"P351":0,"P353":44,"P361":0,"P363":0,"P304+P340":0,"P301+P330+P331":0,"P303+P361+P353":44,"P305+P351+P338":0,"P405":0,"P501":66},
+      "acute_inhalation|4":{"P261":23,"P271":0,"P304":0,"P312":34,"P340":0,"P304+P340":0},
+      "respiratory_sensitisation|1":{"P261":23,"P284":31,"P304":0,"P311":33,"P340":0,"P342":0,"P304+P340":0,"P342+P311":33,"P501":66},
+      "respiratory_sensitisation|1A":{"P261":23,"P284":31,"P304":0,"P311":33,"P340":0,"P342":0,"P304+P340":0,"P342+P311":33,"P501":66},
+      "respiratory_sensitisation|1B":{"P261":23,"P284":31,"P304":0,"P311":33,"P340":0,"P342":0,"P304+P340":0,"P342+P311":33,"P501":66},
+      "skin_sensitisation|1":{"P261":23,"P272":0,"P280":29,"P302":0,"P313":0,"P321":38,"P333":0,"P352":43,"P362":0,"P364":0,"P302+P352":43,"P333+P313":0,"P362+P364":0,"P501":66},
+      "skin_sensitisation|1A":{"P261":23,"P272":0,"P280":29,"P302":0,"P313":0,"P321":38,"P333":0,"P352":43,"P362":0,"P364":0,"P302+P352":43,"P333+P313":0,"P362+P364":0,"P501":66},
+      "skin_sensitisation|1B":{"P261":23,"P272":0,"P280":29,"P302":0,"P313":0,"P321":38,"P333":0,"P352":43,"P362":0,"P364":0,"P302+P352":43,"P333+P313":0,"P362+P364":0,"P501":66},
+      "acute_dermal|1":{"P262":0,"P264":24,"P270":0,"P280":27,"P302":0,"P310":33,"P321":36,"P352":43,"P361":0,"P364":0,"P302+P352":43,"P361+P364":0,"P405":0,"P501":66},
+      "acute_dermal|2":{"P262":0,"P264":24,"P270":0,"P280":27,"P302":0,"P310":33,"P321":36,"P352":43,"P361":0,"P364":0,"P302+P352":43,"P361+P364":0,"P405":0,"P501":66},
+      "acute_oral|1":{"P264":24,"P270":0,"P301":0,"P310":33,"P321":35,"P330":0,"P301+P310":33,"P405":0,"P501":66},
+      "acute_oral|2":{"P264":24,"P270":0,"P301":0,"P310":33,"P321":35,"P330":0,"P301+P310":33,"P405":0,"P501":66},
+      "acute_oral|3":{"P264":24,"P270":0,"P301":0,"P310":33,"P321":35,"P330":0,"P301+P310":33,"P405":0,"P501":66},
+      "acute_oral|4":{"P264":24,"P270":0,"P301":0,"P312":34,"P330":0,"P301+P312":48,"P501":66},
+      "skin_irritation|2":{"P264":24,"P280":29,"P302":0,"P313":0,"P321":38,"P332":40,"P352":43,"P362":0,"P364":0,"P302+P352":43,"P332+P313":49,"P362+P364":0},
+      "eye_irritation|2":{"P264":24,"P280":30,"P305":0,"P313":0,"P337":0,"P338":0,"P351":0,"P337+P313":0,"P305+P351+P338":0},
+      "aquatic_acute|1":{"P273":25,"P391":0,"P501":66},
+      "aquatic_chronic|1":{"P273":25,"P391":0,"P501":66},
+      "aquatic_chronic|2":{"P273":25,"P391":0,"P501":66},
+      "aquatic_chronic|3":{"P273":25,"P501":66},
+      "aquatic_chronic|4":{"P273":25,"P501":66},
+      "acute_dermal|3":{"P280":27,"P302":0,"P312":34,"P321":36,"P352":43,"P361":0,"P364":0,"P302+P352":43,"P361+P364":0,"P405":0,"P501":66},
+      "acute_dermal|4":{"P280":27,"P302":0,"P312":34,"P321":36,"P352":43,"P362":0,"P364":0,"P302+P352":43,"P362+P364":0,"P501":66},
+      "eye_damage|1":{"P280":30,"P305":0,"P310":33,"P338":0,"P351":0,"P305+P351+P338":0},
+      "gases_under_pressure|Refrigerated liquefied gas":{"P282":0,"P315":0,"P336":0,"P336+P315":0,"P403":0},
+      "skin_corrosion|1":{"P301":0,"P321":38,"P353":44,"P301+P330+P331":0,"P303+P361+P353":44,"P305+P351+P338":0,"P501":66,"P260":22,"P264":24,"P280":28,"P303":0,"P304":0,"P305":0,"P310":33,"P330":0,"P331":0,"P338":0,"P340":0,"P351":0,"P361":0,"P363":0,"P304+P340":0,"P405":0},
+      "aspiration|1":{"P301":0,"P310":33,"P331":0,"P301+P310":33,"P405":0,"P501":66},
+      "skin_irritation|3":{"P313":0},
+      "gases_under_pressure|Compressed gas":{"P403":0,"P410":60,"P410+P403":64},
+      "gases_under_pressure|Liquefied gas":{"P403":0,"P410":60,"P410+P403":64},
+      "gases_under_pressure|Dissolved gas":{"P403":0,"P410":60,"P410+P403":64},
+      "ozone|1":{"P502":0},
+      "ed_human_health|1":{"P201":0,"P202":0,"P263":0,"P280":0,"P308+P313":0,"P405":0,"P501":0},
+      "ed_human_health|2":{"P201":0,"P202":0,"P263":0,"P280":0,"P308+P313":0,"P405":0,"P501":0},
+      "ed_environment|1":{"P201":0,"P202":0,"P273":0,"P391":0,"P405":0,"P501":0},
+      "ed_environment|2":{"P201":0,"P202":0,"P273":0,"P391":0,"P405":0,"P501":0},
+      "pbt|PBT":{"P201":0,"P202":0,"P273":0,"P391":0,"P501":0},
+      "pbt|vPvB":{"P201":0,"P202":0,"P273":0,"P391":0,"P501":0},
+      "pmt|PMT":{"P201":0,"P202":0,"P273":0,"P391":0,"P501":0},
+      "pmt|vPvM":{"P201":0,"P202":0,"P273":0,"P391":0,"P501":0},
+    },
+    // classes whose statements come from an Annex I label table (no Annex IV Part 1 rows)
+    annexI:{"ed_human_health|1":"Table 3.11.3","ed_human_health|2":"Table 3.11.3","ed_environment|1":"Table 4.2.3","ed_environment|2":"Table 4.2.3","pbt|PBT":"Table 4.3.1","pbt|vPvB":"Table 4.3.1","pmt|PMT":"Table 4.4.1","pmt|vPvM":"Table 4.4.1"},
+    // H/EUH code -> hazard class|category entries carrying it (Annex I label tables)
+    hClasses:{
+      "H200":["explosives|Unstable explosive"],
+      "H201":["explosives|1.1"],
+      "H202":["explosives|1.2"],
+      "H203":["explosives|1.3"],
+      "H204":["explosives|1.4"],
+      "H205":["explosives|1.5"],
+      "H270":["oxidising_gases|1"],
+      "H280":["gases_under_pressure|Compressed gas","gases_under_pressure|Liquefied gas","gases_under_pressure|Dissolved gas"],
+      "H281":["gases_under_pressure|Refrigerated liquefied gas"],
+      "H224":["flammable_liquids|1"],
+      "H225":["flammable_liquids|2"],
+      "H226":["flammable_liquids|3"],
+      "H228":["flammable_solids|1","flammable_solids|2"],
+      "H240":["self_reactive|A","organic_peroxides|A"],
+      "H241":["self_reactive|B","organic_peroxides|B"],
+      "H242":["self_reactive|C","self_reactive|D","self_reactive|E","self_reactive|F","organic_peroxides|C","organic_peroxides|D","organic_peroxides|E","organic_peroxides|F"],
+      "H250":["pyrophoric_liquids|1","pyrophoric_solids|1"],
+      "H251":["self_heating|1"],
+      "H252":["self_heating|2"],
+      "H260":["water_reactive|1"],
+      "H261":["water_reactive|2","water_reactive|3"],
+      "H271":["oxidising_liquids|1","oxidising_solids|1"],
+      "H272":["oxidising_liquids|2","oxidising_liquids|3","oxidising_solids|2","oxidising_solids|3"],
+      "H290":["corrosive_to_metals|1"],
+      "H340":["mutagenicity|1","mutagenicity|1A","mutagenicity|1B"],
+      "H341":["mutagenicity|2"],
+      "H350":["carcinogenicity|1","carcinogenicity|1A","carcinogenicity|1B"],
+      "H351":["carcinogenicity|2"],
+      "H360":["reproductive_toxicity|1","reproductive_toxicity|1A","reproductive_toxicity|1B"],
+      "H361":["reproductive_toxicity|2"],
+      "H362":["lactation|Additional category","lactation|Additional category"],
+      "H370":["stot_se|1"],
+      "H371":["stot_se|2"],
+      "H372":["stot_re|1"],
+      "H373":["stot_re|2"],
+      "H304":["aspiration|1"],
+      "EUH380":["ed_human_health|1"],
+      "EUH381":["ed_human_health|2"],
+      "EUH430":["ed_environment|1"],
+      "EUH431":["ed_environment|2"],
+      "H222":["aerosols|1"],
+      "H229":["aerosols|1","aerosols|2","aerosols|3"],
+      "H223":["aerosols|2"],
+      "H220":["flammable_gases|1A","flammable_gases|Pyrophoric gas","flammable_gases|A","flammable_gases|B"],
+      "H232":["flammable_gases|Pyrophoric gas"],
+      "H230":["flammable_gases|A"],
+      "H231":["flammable_gases|B"],
+      "H221":["flammable_gases|1B","flammable_gases|2"],
+      "H206":["desensitised_explosives|1"],
+      "H207":["desensitised_explosives|2","desensitised_explosives|3"],
+      "H208":["desensitised_explosives|4"],
+      "H300":["acute_oral|1","acute_oral|2"],
+      "H301":["acute_oral|3"],
+      "H302":["acute_oral|4"],
+      "H310":["acute_dermal|1","acute_dermal|2"],
+      "H311":["acute_dermal|3"],
+      "H312":["acute_dermal|4"],
+      "H330":["acute_inhalation|1","acute_inhalation|2"],
+      "H331":["acute_inhalation|3"],
+      "H332":["acute_inhalation|4"],
+      "H314":["skin_corrosion|1","skin_corrosion|1A","skin_corrosion|1B","skin_corrosion|1C"],
+      "H315":["skin_irritation|2"],
+      "H318":["eye_damage|1"],
+      "H319":["eye_irritation|2"],
+      "H334":["respiratory_sensitisation|1","respiratory_sensitisation|1A","respiratory_sensitisation|1B"],
+      "H317":["skin_sensitisation|1","skin_sensitisation|1A","skin_sensitisation|1B"],
+      "H335":["stot_se_3_resp|3"],
+      "H336":["stot_se_3_narc|3"],
+      "H400":["aquatic_acute|1"],
+      "H410":["aquatic_chronic|1"],
+      "H411":["aquatic_chronic|2"],
+      "H412":["aquatic_chronic|3"],
+      "H413":["aquatic_chronic|4"],
+      "H420":["ozone|1"],
+      "EUH440":["pbt|PBT"],
+      "EUH441":["pbt|vPvB"],
+      "EUH450":["pmt|PMT"],
+      "EUH451":["pmt|vPvM"],
+    },
+    // Annex VI Table 1.1 hazard class and category codes
+    classCodes:{
+      "Unst. Expl.":["explosives",["Unstable explosive"]],
+      "Expl. 1.1":["explosives",["1.1"]],
+      "Expl. 1.2":["explosives",["1.2"]],
+      "Expl. 1.3":["explosives",["1.3"]],
+      "Expl. 1.4":["explosives",["1.4"]],
+      "Expl. 1.5":["explosives",["1.5"]],
+      "Expl. 1.6":["explosives",["1.6"]],
+      "Flam. Gas 1A":["flammable_gases",["1A"]],
+      "Flam. Gas 1B":["flammable_gases",["1B"]],
+      "Flam. Gas 2":["flammable_gases",["2"]],
+      "Pyr. Gas":["flammable_gases",["Pyrophoric gas"]],
+      "Chem. Unst. Gas A":["flammable_gases",["A"]],
+      "Chem. Unst. Gas B":["flammable_gases",["B"]],
+      "Aerosol 1":["aerosols",["1"]],
+      "Aerosol 2":["aerosols",["2"]],
+      "Aerosol 3":["aerosols",["3"]],
+      "Ox. Gas 1":["oxidising_gases",["1"]],
+      "Press. Gas":["gases_under_pressure",["by H-code"]],
+      "Flam. Liq. 1":["flammable_liquids",["1"]],
+      "Flam. Liq. 2":["flammable_liquids",["2"]],
+      "Flam. Liq. 3":["flammable_liquids",["3"]],
+      "Flam. Sol. 1":["flammable_solids",["1"]],
+      "Flam. Sol. 2":["flammable_solids",["2"]],
+      "Self-react. A":["self_reactive",["A"]],
+      "Self-react. B":["self_reactive",["B"]],
+      "Self-react. CD":["self_reactive",["C","D"]],
+      "Self-react. EF":["self_reactive",["E","F"]],
+      "Self-react. G":["self_reactive",["G"]],
+      "Pyr. Liq. 1":["pyrophoric_liquids",["1"]],
+      "Pyr. Sol. 1":["pyrophoric_solids",["1"]],
+      "Self-heat. 1":["self_heating",["1"]],
+      "Self-heat. 2":["self_heating",["2"]],
+      "Water-react. 1":["water_reactive",["1"]],
+      "Water-react. 2":["water_reactive",["2"]],
+      "Water-react. 3":["water_reactive",["3"]],
+      "Ox. Liq. 1":["oxidising_liquids",["1"]],
+      "Ox. Liq. 2":["oxidising_liquids",["2"]],
+      "Ox. Liq. 3":["oxidising_liquids",["3"]],
+      "Ox. Sol. 1":["oxidising_solids",["1"]],
+      "Ox. Sol. 2":["oxidising_solids",["2"]],
+      "Ox. Sol. 3":["oxidising_solids",["3"]],
+      "Org. Perox. A":["organic_peroxides",["A"]],
+      "Org. Perox. B":["organic_peroxides",["B"]],
+      "Org. Perox. CD":["organic_peroxides",["C","D"]],
+      "Org. Perox. EF":["organic_peroxides",["E","F"]],
+      "Org. Perox. G":["organic_peroxides",["G"]],
+      "Met. Corr. 1":["corrosive_to_metals",["1"]],
+      "Desen. Expl. 1":["desensitised_explosives",["1"]],
+      "Desen. Expl. 2":["desensitised_explosives",["2"]],
+      "Desen. Expl. 3":["desensitised_explosives",["3"]],
+      "Desen. Expl. 4":["desensitised_explosives",["4"]],
+      "Acute Tox. 1":["acute_by_h",["1"]],
+      "Acute Tox. 2":["acute_by_h",["2"]],
+      "Acute Tox. 3":["acute_by_h",["3"]],
+      "Acute Tox. 4":["acute_by_h",["4"]],
+      "Skin Corr. 1A":["skin_corrosion",["1A"]],
+      "Skin Corr. 1B":["skin_corrosion",["1B"]],
+      "Skin Corr. 1C":["skin_corrosion",["1C"]],
+      "Skin Corr. 1":["skin_corrosion",["1"]],
+      "Skin Irrit. 2":["skin_irritation",["2"]],
+      "Eye Dam. 1":["eye_damage",["1"]],
+      "Eye Irrit. 2":["eye_irritation",["2"]],
+      "Resp. Sens. 1A":["respiratory_sensitisation",["1A"]],
+      "Resp. Sens. 1B":["respiratory_sensitisation",["1B"]],
+      "Resp. Sens. 1":["respiratory_sensitisation",["1"]],
+      "Skin Sens. 1A":["skin_sensitisation",["1A"]],
+      "Skin Sens. 1B":["skin_sensitisation",["1B"]],
+      "Skin Sens. 1":["skin_sensitisation",["1"]],
+      "Muta. 1A":["mutagenicity",["1A"]],
+      "Muta. 1B":["mutagenicity",["1B"]],
+      "Muta. 2":["mutagenicity",["2"]],
+      "Carc. 1A":["carcinogenicity",["1A"]],
+      "Carc. 1B":["carcinogenicity",["1B"]],
+      "Carc. 2":["carcinogenicity",["2"]],
+      "Repr. 1A":["reproductive_toxicity",["1A"]],
+      "Repr. 1B":["reproductive_toxicity",["1B"]],
+      "Repr. 2":["reproductive_toxicity",["2"]],
+      "Lact.":["lactation",["Additional category"]],
+      "STOT SE 1":["stot_se",["1"]],
+      "STOT SE 2":["stot_se",["2"]],
+      "STOT SE 3":["stot_se_3_by_h",["3"]],
+      "STOT RE 1":["stot_re",["1"]],
+      "STOT RE 2":["stot_re",["2"]],
+      "Asp. Tox. 1":["aspiration",["1"]],
+      "ED HH 1":["ed_human_health",["1"]],
+      "ED HH 2":["ed_human_health",["2"]],
+      "Aquatic Acute 1":["aquatic_acute",["1"]],
+      "Aquatic Chronic 1":["aquatic_chronic",["1"]],
+      "Aquatic Chronic 2":["aquatic_chronic",["2"]],
+      "Aquatic Chronic 3":["aquatic_chronic",["3"]],
+      "Aquatic Chronic 4":["aquatic_chronic",["4"]],
+      "ED ENV 1":["ed_environment",["1"]],
+      "ED ENV 2":["ed_environment",["2"]],
+      "PBT":["pbt",["PBT"]],
+      "vPvB":["pbt",["vPvB"]],
+      "PMT":["pmt",["PMT"]],
+      "vPvM":["pmt",["vPvM"]],
+      "Ozone 1":["ozone",["1"]],
+    }
+  });
+  /* END GENERATED ANNEX IV TABLE */
+
+  const P28_TABLE_NO = {general:'6.1', prevention:'6.2', response:'6.3', storage:'6.4', disposal:'6.5'};
+  // Display order for the six-statement draft (judgement, not law): the values used before the full table, then a
+  // default per Annex IV table.
+  const P28_PRIORITY = {P101:30, P102:80, P103:25, P210:95, P202:86, P280:65, P273:64, P261:57, P260:79,
+    'P301+P330+P331':90, 'P305+P351+P338':95, 'P303+P361+P353':71, 'P302+P352':62, 'P333+P313':62, 'P337+P313':50,
+    'P301+P310':94, 'P301+P312':78, P331:86, 'P304+P340':78, 'P308+P313':81, P501:65};
+  const P28_GROUP_PRIORITY = {general:30, prevention:60, response:70, storage:50, disposal:45};
+  const P28_NEEDS = {P280:'ppe', P261:'exposure', P260:'exposure', P501:'disposal', 'P301+P310':'emergency',
+    'P301+P312':'emergency', 'P302+P352':'wash'};
+  const P28_CONSUMER_GENERAL = ['P101','P102','P103'];
+  const P28_PREFIX = new Set(ANNEX_IV.statements.filter(([c,t]) => !c.includes('+') && /:\s*$/.test(t)).map(([c]) => c));
+  const p28Parts = (code) => code.split('+').map((x) => x.replace(/[\[\]]/g,''));
+  const P28_CONDITIONAL = /(?:^|—\s*)(?:if|for|except|where|when|unless)\b/i;
+  const P28_OMIT_IF = /(?:omit where|may be omitted (?:if|when)) (P\d{3}(?:\s*\+\s*P\d{3})*) is (?:used|given)/i;
+  function p28Condition(text) {
+    const t = String(text || '');
+    const omit = t.match(P28_OMIT_IF);
+    const bare = t.replace(/Manufacturer\/\s*sup-?plier[^.]*\./gi, '');
+    return {
+      text: t,
+      kind: /consumer products/i.test(t) ? 'consumer' : P28_CONDITIONAL.test(bare) ? 'conditional' : 'required',
+      omitIf: omit ? omit[1].replace(/\s*\+\s*/g,'+') : null,
+      mayOmit: /may be omitted/i.test(t) && !omit
+    };
+  }
+  const P28_HKEYS = (h) => ANNEX_IV.hClasses[h] || ANNEX_IV.hClasses[String(h).replace(/^(H3[56]\d)[A-Za-z]+$/, '$1')] || [];
+  const P28_RULES = Object.freeze(ANNEX_IV.statements.map(([code, text, group]) => {
+    const h = Object.keys(ANNEX_IV.hClasses).filter((x) => P28_HKEYS(x).some((k) => (ANNEX_IV.byClass[k] || {})[code] !== undefined));
+    return Object.freeze({code, text, group, consumer:P28_CONSUMER_GENERAL.includes(code),
+      priority:P28_PRIORITY[code] ?? P28_GROUP_PRIORITY[group], needs:P28_NEEDS[code] || '',
+      componentOnly:P28_PREFIX.has(code), h,
+      basis:'Annex IV Part 1, Table ' + P28_TABLE_NO[group] + (P28_CONSUMER_GENERAL.includes(code) ? ', consumer products' : '')});
+  }));
   const P28_MAP = Object.freeze(Object.fromEntries(P28_RULES.map((r) => [r.code, r])));
   const P28_REVIEW_LIMIT = 6;
+  const P28_CODES_BY_LENGTH = Object.keys(ANNEX_IV.classCodes).sort((a,b) => b.length - a.length);
+  const P28_ROUTE = {H300:'oral',H301:'oral',H302:'oral',H310:'dermal',H311:'dermal',H312:'dermal',
+    H330:'inhalation',H331:'inhalation',H332:'inhalation'};
+
+  // Outcome -> hazard class|category keys. Label first (Annex VI Table 1.1 code), H-codes for the rest.
+  function p28Hazards(o) {
+    const label = String(o.label || '').replace(/^Manual entry:\s*/i, '').replace(/\s+/g, ' ').trim();
+    const hs = (o.h || []).filter((h) => /^(?:EU)?H\d{3}[A-Za-z]*$/.test(h));
+    const out = [];
+    let rest = label;
+    while (rest) {
+      const code = P28_CODES_BY_LENGTH.find((c) => rest === c || rest.startsWith(c + ' ') || rest.startsWith(c + ',') || rest.startsWith(c + ';') || rest.startsWith(c + '('));
+      if (!code) break;
+      let [cls, cats] = ANNEX_IV.classCodes[code];
+      rest = rest.slice(code.length);
+      const note = (rest.match(/^\s*\(([^)]*)\)/) || [])[1] || '';
+      rest = rest.replace(/^\s*\([^)]*\)/, '').replace(/^[\s,;+]+/, '');
+      let keys;
+      if (cls === 'acute_by_h') {
+        const routes = /oral|dermal|inhal/i.test(note) ? [note.match(/oral|dermal|inhal/i)[0].toLowerCase().replace('inhal','inhalation')]
+          : [...new Set(hs.map((h) => P28_ROUTE[h]).filter(Boolean))];
+        keys = routes.map((r) => 'acute_' + r + '|' + cats[0]);
+      } else if (cls === 'stot_se_3_by_h') {
+        const k = [];
+        if (/respirat/i.test(note) || hs.includes('H335')) k.push('stot_se_3_resp|3');
+        if (/narco/i.test(note) || hs.includes('H336')) k.push('stot_se_3_narc|3');
+        keys = k;
+      } else if (cls === 'gases_under_pressure') {
+        keys = hs.includes('H281') ? ['gases_under_pressure|Refrigerated liquefied gas'] : hs.includes('H280') ? ['gases_under_pressure|Compressed gas'] : [];
+      } else keys = cats.map((c) => cls + '|' + c);
+      keys.forEach((k) => out.push({key:k, via:code, certain:true}));
+    }
+    const explained = new Set(out.flatMap((x) => Object.keys(ANNEX_IV.hClasses).filter((h) => P28_HKEYS(h).includes(x.key))));
+    const unresolved = [];
+    hs.filter((h) => !explained.has(h) && !explained.has(h.replace(/^(H3[56]\d)[A-Za-z]+$/, '$1'))).forEach((h) => {
+      const keys = P28_HKEYS(h).filter((k) => ANNEX_IV.byClass[k]);
+      if (!P28_HKEYS(h).length) { unresolved.push(h); return; }
+      keys.forEach((k) => out.push({key:k, via:h, certain:keys.length === 1, alternatives:keys}));
+    });
+    return {keys:out, unresolved, hs};
+  }
+
+  // Statements for one hazard class|category: drop component-only clauses, and single statements that the same
+  // class lists inside one of its combinations (Annex I label tables list the combination).
+  function p28Statements(key) {
+    const row = ANNEX_IV.byClass[key] || {};
+    const codes = Object.keys(row);
+    const combos = codes.filter((c) => c.includes('+'));
+    return codes.filter((c) => !P28_PREFIX.has(c) && !(!c.includes('+') && combos.some((x) => p28Parts(x).includes(c))))
+      .map((c) => ({code:c, cond:p28Condition(ANNEX_IV.conditions[row[c]])}));
+  }
 
   function selectArticle28(outcomes, settings) {
     const m = settings || {};
     const audience = ['consumer','professional','industrial'].includes(m.audience) ? m.audience : 'unknown';
-    const hazards = (outcomes || []).filter((o) => !o.omitOnLabel)
-      .flatMap((o) => (o.h || []).filter((h) => /^H\d{3}(?:[A-Za-z]*)$/.test(h))
-        .map((h) => ({h, from:o.label})));
-    const hs = [...new Set(hazards.map((h) => h.h))];
-    const matches = (pattern, h) => pattern.endsWith('*') ? h.startsWith(pattern.slice(0,-1)) : pattern === h;
+    const resolved = (outcomes || []).filter((o) => !o.omitOnLabel).map((o) => ({o, r:p28Hazards(o)}));
+    const hs = [...new Set(resolved.flatMap(({r}) => r.hs).filter((h) => /^H\d{3}/.test(h) || P28_HKEYS(h).length))];
+    const uncoveredSet = new Set(resolved.flatMap(({r}) => r.unresolved).filter((h) => /^H\d{3}/.test(h)));
     const active = new Map(), review = [], warnings = [];
-    const add = (rule, why, manual) => {
+    const add = (rule, why, manual, extra) => {
+      const e = extra || {};
       const existing = active.get(rule.code);
       if (existing) {
         if (why && !existing.triggeredBy.includes(why)) existing.triggeredBy.push(why);
+        if (e.kind === 'required' || manual) existing.conditionKind = 'required';
+        if (e.condition && !existing.condition.includes(e.condition)) existing.condition = [existing.condition, e.condition].filter(Boolean).join(' | ');
+        if (e.onlyFor) existing.onlyFor = [...new Set([...(existing.onlyFor || []), ...e.onlyFor])];
+        if (e.certain) existing.certain = true;
+        (e.omitIf ? existing.omitIf.push(e.omitIf) : null);
+        if (e.kind === 'required' && !e.omitIf) existing.requiredWithoutOmission = true;
       } else active.set(rule.code, {
-        code:rule.code,text:rule.text || '',
-        basis:rule.basis || 'Manual entry — independently verify against Annex IV',
+        code:rule.code, text:rule.text || '',
+        basis:e.basis || rule.basis || 'Manual entry — independently verify against Annex IV',
         reason:rule.consumer ? 'Annex IV general precautionary statement for consumer products; include as appropriate.'
           : 'Eligible for the identified hazard classification under Annex IV. Select by use, packaging and relevance.',
         triggeredBy:why ? [why] : [], group:rule.group || 'manual',
         priority:rule.priority || 0, needs:rule.needs || '',
-        condition:rule.condition || '', manual:!!manual, legalStatus:'candidate'
+        condition:e.condition || '', conditionKind:manual ? 'required' : (e.kind || 'required'),
+        omitIf:e.omitIf ? [e.omitIf] : [], requiredWithoutOmission:e.kind === 'required' && !e.omitIf,
+        mayOmit:!!e.mayOmit, certain:e.certain !== false, onlyFor:e.onlyFor || null,
+        manual:!!manual, legalStatus:'candidate'
       });
     };
-    P28_RULES.forEach((rule) => {
-      if (rule.consumer && audience === 'consumer' && hs.length) add(rule,'consumer products (where relevant)');
-      if (rule.h) hazards.forEach(({h,from}) => {
-        if (rule.h.some((x) => matches(x,h))) add(rule,from + ' (' + h + ')');
+    const hasHazard = hs.length > 0 || resolved.some(({r}) => r.keys.length);
+    if (audience === 'consumer' && hasHazard)
+      P28_CONSUMER_GENERAL.forEach((code) => {
+        add(P28_MAP[code], 'consumer products (where relevant)', false,
+          {kind:'required', omitIf: code === 'P103' ? 'P202' : null, condition: code === 'P103' ? 'Consumer products – omit where P202 is used' : 'Consumer products'});
+      });
+    resolved.forEach(({o, r}) => {
+      // statements per hazard key; with alternatives (H-code fits several classes) keep the common ones as certain
+      const groups = {};
+      r.keys.forEach((k) => { const g = k.alternatives ? k.via : k.key; (groups[g] = groups[g] || []).push(k); });
+      Object.values(groups).forEach((ks) => {
+        const lists = ks.map((k) => p28Statements(k.key));
+        const common = lists.reduce((a, l) => a.filter((x) => l.some((y) => y.code === x)), lists[0].map((x) => x.code));
+        ks.forEach((k, i) => lists[i].forEach(({code, cond}) => {
+          if (cond.kind === 'consumer' && audience !== 'consumer') return;
+          const rule = P28_MAP[code];
+          const why = (o.label || k.via) + ' (' + k.key.replace('|', ' ') + ')';
+          const basis = ANNEX_IV.annexI[k.key] ? 'Annex I ' + ANNEX_IV.annexI[k.key] + ' (no Annex IV Part 1 rows for this hazard class)' : rule.basis;
+          const certain = ks.length === 1 || common.includes(code);
+          add(rule, why, false, {kind:cond.kind, condition:cond.text, omitIf:cond.omitIf, mayOmit:cond.mayOmit, basis,
+            certain, onlyFor: certain ? null : [k.key.replace('|', ' ')]});
+        }));
       });
     });
 
@@ -1113,42 +1714,46 @@
         warnings.push('Invalid manual P-statement code: '+code+'. Use codes such as P280 or P305+P351+P338.');
         return;
       }
-      const rule=P28_MAP[code];
+      const rule=P28_MAP[code] || P28_MAP[code.replace(/\+P378$/, '+[P378]')];
       if (!rule) {
-        add({code,text:'[Official Annex IV wording must be verified before use]',group:'manual',priority:110},'manual selection',true);
-        warnings.push('Manual '+code+' has no verified wording in this limited catalogue: check Annex IV Part 2 and eligibility.');
-        review.push({severity:'blocker',code,reason:'Manual P-code '+code+' has no independently verified Annex IV wording/eligibility in this catalogue. Do not print as a final statement until checked.'});
+        add({code,text:'[Not an EU CLP Annex IV statement: wording must be verified before use]',group:'manual',priority:110},'manual selection',true);
+        warnings.push('Manual '+code+' has no verified wording: it is not listed in CLP Annex IV Part 1. Check Annex IV Part 2 and eligibility.');
+        review.push({severity:'blocker',code,reason:'Manual P-code '+code+' is not in CLP Annex IV Part 1 (consolidated text). Do not print it as a final statement until checked.'});
       } else {
+        const existed = active.has(rule.code);
         add(rule,'manual selection',true);
-        if (rule.h && !hs.some(h => rule.h.some(pattern => matches(pattern,h))))
+        if (!existed)
           review.push({severity:'review',code,reason:'Manually added '+code+' does not match any mapped classification for this mixture. Confirm applicability against Annex I and IV.'});
       }
-      const entry=active.get(code);
-      if (entry) { entry.manual=true; entry.priority=Math.max(entry.priority,110); }
+      const entry=active.get(code) || active.get(code.replace(/\+P378$/, '+[P378]'));
+      if (entry) { entry.manual=true; entry.conditionKind='required'; entry.certain=true; entry.priority=Math.max(entry.priority,110); }
     });
 
     const publicSupply = audience === 'consumer';
-    const P501 = active.get('P501');
-    const consumerDisposalApplies = publicSupply && hs.length>0 && !!P501;
+    const disposalCodes = ['P501','P502','P503'];
+    const P501 = disposalCodes.map((c) => active.get(c)).find(Boolean);
+    const consumerDisposalApplies = publicSupply && hasHazard && !!P501;
     if (consumerDisposalApplies) {
       P501.legalStatus='conditional statutory disposal obligation';
-      P501.reason='Consumer supply: Article 28(2) generally requires a disposal precaution addressing both contents and packaging, subject to Article 22. P501 is the available Annex IV Table 6.5 statement for this classification; text must be completed by the supplier.';
-      P501.priority=1000;
-      const dest=supplied(m.disposalDestination);
-      if (dest) P501.text='Dispose of contents and container to '+dest.replace(/\.+$/,'')+'.';
-      else {
-        P501.text='Dispose of contents and container to [SPECIFY APPROPRIATE DISPOSAL ROUTE].';
-        review.push({severity:'blocker',code:'P501',
-          reason:'Consumer disposal wording is incomplete. Specify the correct destination/route before approving a label. Confirm Article 22 applicability.'});
+      P501.reason='Consumer supply: Article 28(2) generally requires a disposal precaution addressing both contents and packaging, subject to Article 22. '+P501.code+' is the available Annex IV Table 6.5 statement for this classification; text must be completed by the supplier.';
+      P501.priority=1000; P501.conditionKind='required'; P501.certain=true;
+      if (P501.code === 'P501') {
+        const dest=supplied(m.disposalDestination);
+        if (dest) P501.text='Dispose of contents and container to '+dest.replace(/\.+$/,'')+'.';
+        else {
+          P501.text='Dispose of contents and container to [SPECIFY APPROPRIATE DISPOSAL ROUTE].';
+          review.push({severity:'blocker',code:'P501',
+            reason:'Consumer disposal wording is incomplete. Specify the correct destination/route before approving a label. Confirm Article 22 applicability.'});
+        }
       }
-    } else if (publicSupply && hs.length>0) {
+    } else if (publicSupply && hasHazard) {
       review.push({severity:'blocker',code:'disposal',
-        reason:'Article 28(2) generally requires a disposal statement for consumer supply unless not required under Article 22. No P501 eligibility was matched in this partial ruleset; manually verify Annex IV P501/P502/P503 and any applicable exception.'});
+        reason:'Article 28(2) generally requires a disposal statement for consumer supply unless not required under Article 22. No P501/P502/P503 is listed in Annex IV for these classifications; manually verify the disposal statement and any applicable exception.'});
     }
-    if (audience==='unknown' && hs.length)
+    if (audience==='unknown' && hasHazard)
       review.push({severity:'blocker',code:'audience',
         reason:'Supply audience not selected: cannot determine whether the consumer-disposal obligation and consumer-only general precautions apply.'});
-    if (!supplied(m.intendedUse) && hs.length)
+    if (!supplied(m.intendedUse) && hasHazard)
       review.push({severity:'review',code:'intendedUse',
         reason:'Intended or identified use is missing. Article 22(3) and Annex IV require use-specific selection; verify candidates against actual product use and packaging.'});
 
@@ -1156,21 +1761,27 @@
     for(const c of candidates) {
       if(c.needs==='ppe') {
         const ppe=supplied(m.ppeDescription);
-        c.text=ppe ? 'Wear '+ppe.replace(/\.+$/,'')+'.' : '[Specify protective gloves/clothing/eye/face protection appropriate for the product]';
+        c.text=ppe ? 'Wear '+ppe.replace(/\.+$/,'')+'.' : '[Specify protective gloves/clothing/eye/face/hearing protection appropriate for the product]';
         if(!ppe) review.push({severity:'review',code:c.code,reason:'P280 protective equipment type has not been specified; Annex IV requires supplier selection.'});
       }
       if(c.needs==='disposal' && !consumerDisposalApplies) {
         const dest=supplied(m.disposalDestination);
         if(dest) c.text='Dispose of contents and container to '+dest.replace(/\.+$/,'')+'.';
         else review.push({severity:'review',code:c.code,reason:'P501 requires a supplier-specified disposal destination and contents/container scope.'});
+        if (audience !== 'consumer') review.push({severity:'info',code:c.code,reason:'Article 28(2): outside supply to the general public a disposal statement is not required where it is clear that disposal of the substance/mixture or packaging presents no hazard to human health or the environment. Confirm before omitting it.'});
       }
       if(c.needs==='emergency') review.push({severity:'review',code:c.code,
         reason:c.code+' requires supplier choice of suitable poison-centre/medical-advice wording. The stored text contains unresolved alternatives.'});
       if(c.needs==='exposure') review.push({severity:'review',code:c.code,
         reason:c.code+' requires supplier choice of relevant dust/fume/gas/mist/vapour/spray forms.'});
-      if(c.condition && c.code==='P273') review.push({severity:'review',code:c.code,
+      if(c.code==='P273') review.push({severity:'review',code:c.code,
         reason:'P273 is conditional: if environmental release is the intended use, applicability must be reconsidered.'});
-      if(c.condition && c.condition.includes('square-bracket'))
+      else if(c.conditionKind==='conditional' && !c.manual) review.push({severity:'review',code:c.code,
+        reason:c.code+' applies only under an Annex IV condition: '+c.condition.replace(/\s+/g,' ').slice(0,300)+' Add it as a manual P-statement once the condition is confirmed.'});
+      if(c.mayOmit) review.push({severity:'info',code:c.code,reason:c.code+': Annex IV allows omission in a defined case: '+c.condition.replace(/\s+/g,' ').slice(0,300)});
+      if(!c.certain && !c.manual) review.push({severity:'review',code:c.code,
+        reason:c.code+' applies only to '+(c.onlyFor || []).join(', ')+'. The hazard class is not identified from the entered H-code; enter the hazard class and category code (Annex VI Table 1.1, e.g. "Org. Perox. CD") to confirm.'});
+      if(c.text.includes('['))
         review.push({severity:'review',code:c.code,reason:'Bracketed Annex IV wording alternatives are conditional and must be chosen by the supplier; do not print the brackets verbatim.'});
     }
 
@@ -1182,18 +1793,17 @@
         reason:code+' remains listed in EU CLP Annex IV. Later UN GHS revisions use '+ghsAlternatives[code]+
           ' instead; this does not supersede the EU code. Retain the EU CLP statement unless the applicable EU legal text is amended.'}));
 
-    // Annex IV table 6.1 and 6.2 explicitly allow these redundancies.
-    const explicitPairs=[['P103','P202','Annex IV Table 6.1: P103 may be omitted when P202 is used'],
-                         ['P261','P260','Annex IV Table 6.2: P261 may be omitted where P260 is used']];
+    // Annex IV "omit where … is used" / "may be omitted if/when … is given" (e.g. P103/P202, P201/P202, P261/P260,
+    // P332+P313/P333+P313): optional omissions, applied unless the statement was added manually.
     const omittedByRedundancy=new Map();
-    for(const [weaker,stronger,basis] of explicitPairs)
-      if(active.has(weaker)&&active.has(stronger)&&!explicitCodes.includes(weaker)) omittedByRedundancy.set(weaker,{stronger,basis});
-    // The consumer-only optional P201 statement is not generated; P202 is used
-    // as a candidate when relevant, and P103 is excluded if redundant.
+    for (const c of candidates)
+      for (const stronger of c.omitIf)
+        if (active.has(stronger) && !c.manual && !c.requiredWithoutOmission)
+          omittedByRedundancy.set(c.code,{stronger,basis:'Annex IV Part 1: '+c.code+' may be omitted where '+stronger+' is used'});
     const manualExclusions=[];
     for(const code of exclusions){
       if(!active.has(code)) {warnings.push('Manual exclusion '+code+' does not match a candidate.');continue;}
-      if(code==='P501' && consumerDisposalApplies){
+      if(disposalCodes.includes(code) && consumerDisposalApplies){
         review.push({severity:'blocker',code,reason:'Manual exclusion of consumer disposal statement is not automatically allowed. Article 28(2) obligation must be addressed or an Article 22 exception justified.'});
         continue;
       }
@@ -1201,19 +1811,29 @@
       else manualExclusions.push(code);
     }
     const validExclusions=new Set(manualExclusions);
-    const eligible=candidates.filter(c=>!omittedByRedundancy.has(c.code)&&!validExclusions.has(c.code))
+    const pending = (c) => !c.manual && (c.conditionKind==='conditional' && c.code!=='P273' || !c.certain);
+    const eligible=candidates.filter(c=>!omittedByRedundancy.has(c.code)&&!validExclusions.has(c.code)&&!pending(c))
       .sort((a,b)=>b.priority-a.priority || a.code.localeCompare(b.code));
     const selected=eligible.slice(0,P28_REVIEW_LIMIT);
     const picked=new Set(selected.map(x=>x.code));
+    // Article 28(1): a selected single statement whose words already appear in a selected combination
+    picked.forEach((code) => {
+      if (code.includes('+')) return;
+      const inside = [...picked].find((x) => x.includes('+') && p28Parts(x).includes(code));
+      if (inside) review.push({severity:'review',code,reason:'Article 28(1): the wording of '+code+' also appears in '+inside+' on this draft. Omit '+code+' if it is clearly redundant for this product.'});
+    });
     const decisions=candidates.map((c)=>{
       const redundant=omittedByRedundancy.get(c.code);
       const manualExcluded=validExclusions.has(c.code);
       const selectedNow=picked.has(c.code);
+      const isPending=!selectedNow && !redundant && !manualExcluded && pending(c);
       const reason=selectedNow ? c.reason
         : redundant ? 'Omitted as redundant with '+redundant.stronger+'; '+redundant.basis+'.'
         : manualExcluded ? 'Manually excluded with justification: '+reasonText
+        : isPending && !c.certain ? 'Applies only to '+(c.onlyFor||[]).join(', ')+'; confirm the hazard class.'
+        : isPending ? 'Annex IV condition not yet confirmed: '+c.condition.replace(/\s+/g,' ').slice(0,300)
         : 'Not selected in six-statement draft; review product-specific priority and whether more than six are necessary.';
-      return {...c,decision:selectedNow?'proposed':redundant?'redundant':manualExcluded?'excluded':'not selected',
+      return {...c,decision:selectedNow?'proposed':redundant?'redundant':manualExcluded?'excluded':isPending?(c.certain?'condition pending':'class to confirm'):'not selected',
         decisionReason:reason, redundancyBasis:redundant?redundant.basis:null};
     });
     if(eligible.length>6) review.push({severity:'blocker',code:'six-statements',
@@ -1222,25 +1842,23 @@
       (d.text.includes('…')||d.text.includes('[')||d.text.includes('/doctor/')||d.text.includes('/…')));
     if(unresolved.length) review.push({severity:'blocker',code:'wording',
       reason:'Selected P statements with supplier choices/unfinished wording: '+unresolved.map(x=>x.code).join(', ')+'. Complete Annex IV wording before release.'});
-    const matchedHS=new Set();
-    P28_RULES.filter(r=>r.h).forEach(r=>hs.forEach(h=>{if(r.h.some(v=>matches(v,h)))matchedHS.add(h)}));
-    const uncovered=hs.filter(h=>!matchedHS.has(h));
+    const uncovered=[...uncoveredSet];
     if(uncovered.length) review.push({severity:'blocker',code:'unmapped',
-      reason:'Partial Annex IV coverage: no candidate mapping yet for '+uncovered.join(', ')+'. Assess the full Annex I/IV selection tables; absence of a candidate is not proof of no P-statements.'});
+      reason:'No Annex I/IV hazard class found for '+uncovered.join(', ')+'. Check the code; absence of a candidate is not proof of no P-statements.'});
     if(!hs.length && outcomes.some(o=>(o.h||[]).some(h=>/^EUH/.test(h))))
-      review.push({severity:'review',code:'supplemental',reason:'Supplemental-only hazard statements may need case-specific labelling assessment. No P-statement is inferred solely from an EUH code.'});
+      review.push({severity:'review',code:'supplemental',reason:'Supplemental-only hazard statements may need case-specific labelling assessment. No P-statement is inferred solely from a supplemental EUH code.'});
     const requiredObligations=[];
-    if (consumerDisposalApplies)requiredObligations.push({id:'consumer-disposal',status:P501&&picked.has('P501')&&supplied(m.disposalDestination)?'satisfied-draft':'unresolved',
+    if (consumerDisposalApplies)requiredObligations.push({id:'consumer-disposal',status:P501&&picked.has(P501.code)&&(P501.code!=='P501'||supplied(m.disposalDestination))?'satisfied-draft':'unresolved',
       basis:'CLP Article 28(2), subject to Article 22',description:'Disposal precautionary statement addressing product contents and packaging for consumer supply.'});
-    else if(publicSupply&&hs.length)requiredObligations.push({id:'consumer-disposal',status:'requires-review',
+    else if(publicSupply&&hasHazard)requiredObligations.push({id:'consumer-disposal',status:'requires-review',
       basis:'CLP Article 28(2), subject to Article 22',description:'Check an eligible Annex IV disposal statement and any legal exception.'});
     return {
       audience, intendedUse:supplied(m.intendedUse), selected:decisions.filter(x=>x.decision==='proposed'),
       candidates:decisions, manualOverrides:{extra:explicitCodes,excluded:[...exclusions]},
       requiredObligations, review, warnings, uncovered,
       limit:P28_REVIEW_LIMIT, excessCandidateCount:Math.max(0,eligible.length-6),
-      readyForFinalLabel:false,
-      scope:'Partial verified Annex IV catalogue: decision support; must validate full Annex I/IV tables, conditions, all selected text and product uses before release.'
+      readyForFinalLabel:false, catalogueSize:P28_RULES.length,
+      scope:'Annex IV Part 1 table ('+P28_RULES.length+' statements, '+ANNEX_IV.source+'). Conditional statements need supplier confirmation; wording placeholders and the final selection need review before release.'
     };
   }
 
