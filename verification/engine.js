@@ -1420,6 +1420,65 @@
   }
 
   /* plain-text report (also used as the Gemini review payload) */
+  /* Export for SDS authoring tools (schema "sds-classification/1"). A snapshot of classify() output: it never
+     recalculates or changes a decision, and carries every Article 28 candidate with its decision so that a
+     downstream tool can tell proposed statements from ones held for review. */
+  const SDS_EXPORT_SCHEMA = 'sds-classification/1';
+  function splitClassLabel(label) {
+    const m = String(label || '').match(/^(.*?)\s+(\d\.\d|\d[A-C]?|[A-G]{1,2})(?:\s*\(([^)]*)\))?$/);
+    return m ? {cls: m[1], category: m[2], qualifier: m[3] || null} : {cls: String(label || ''), category: null, qualifier: null};
+  }
+  function exportForSds(mixture, result, meta) {
+    const m = normalise(mixture).m;
+    const r = result || classify(mixture);
+    const L = r.label || {};
+    const a28 = L.article28 || {};
+    const n = (x) => { const v = num(x); return has(v) ? v : null; };
+    return {
+      schema: SDS_EXPORT_SCHEMA,
+      generated: (meta && meta.generated) || new Date().toISOString(),
+      status: 'DRAFT: calculator output for review by a competent person; not a final classification or label',
+      engine: {name: 'clp-mixture-calculator', module: 'verification/engine.js',
+        repo: (meta && meta.repo) || 'ConorTttttt/Classification', commit: (meta && meta.commit) || null,
+        basis: 'Regulation (EC) No 1272/2008 Annex I mixture rules, consolidated 01.07.2026'},
+      jurisdiction: 'EU',
+      mixture: {name: m.name || '', physical_state: m.state || null, flash_point_c: n(m.flashPoint),
+        initial_boiling_point_c: n(m.ibp), kinematic_viscosity_40c_mm2_s: n(m.viscosity40), ph: n(m.pH),
+        audience: m.audience || 'unknown', intended_use: m.intendedUse || ''},
+      ingredients: (m.ingredients || []).map((i) => ({name: i.name || '', cas: i.cas || '', pct: n(i.pct),
+        h: String(i.hcodes || '').split(/[\s,;]+/).filter(Boolean)})),
+      classification: (r.outcomes || []).map((o) => {
+        const c = splitClassLabel(o.label);
+        return {class: c.cls, category: c.category, qualifier: c.qualifier, label: o.label, h: o.h || [],
+          signal_word: o.signal || null, pictograms: o.picto || [], basis: /^manual/.test(o.hazardId || '') ? 'manual' : 'calculated',
+          hazard_id: o.hazardId || '', hazard: o.hazard || '', omit_on_label: !!o.omitOnLabel};
+      }),
+      trail: (r.hazards || []).map((h) => ({hazard_id: h.id, hazard: h.name, status: h.status, ref: h.ref || '', steps: h.steps || []})),
+      label: {
+        signal_word: L.signal || null,
+        pictograms: (L.pictograms || []).map((p) => p.code),
+        pictograms_omitted: (L.omittedPictograms || []).map((p) => ({code: p.code, basis: p.basis})),
+        hazard_statements: (L.hazardStatements || []).map((x) => x.code),
+        euh_statements: (L.euhStatements || []).map((x) => x.code),
+        omitted_hazard_statements: [...(L.omittedHazardStatements || []), ...(L.omittedEuhStatements || [])]
+          .map((x) => ({code: x.code, overridden_by: x.overriddenBy || null, basis: x.basis || ''})),
+        p_statements_selected: (L.precautionaryStatements || []).map((p) => p.code),
+        p_statements_candidates: (a28.candidates || []).map((p) => ({code: p.code, text: p.text, decision: p.decision,
+          legalStatus: p.legalStatus, conditionKind: p.conditionKind || null, condition: p.condition || '',
+          basis: p.basis || '', triggeredBy: p.triggeredBy || [], reason: p.decisionReason || ''})),
+        p_review: (a28.review || []).map((x) => ({severity: x.severity, code: x.code, reason: x.reason})),
+        audience: a28.audience || null,
+        supplemental: L.supplemental || []
+      },
+      sds_notes: r.sds || [],
+      notes: r.notes || [],
+      warnings: r.warnings || [],
+      incomplete: r.incomplete || [],
+      nodata: r.nodata || [],
+      manual_classifications: (r.outcomes || []).filter((o) => /^manual/.test(o.hazardId || '')).map((o) => ({label: o.label, h: o.h || []}))
+    };
+  }
+
   function report(mixture, result, opts) {
     opts = opts || {};
     const { m, ings } = normalise(mixture);
@@ -1517,5 +1576,5 @@
     return t;
   }
 
-  return { classify, report, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
+  return { classify, report, exportForSds, SDS_EXPORT_SCHEMA, applyHCodes, parseHCodeTokens, selectArticle26, selectArticle27, selectArticle28, P28_RULES, ARTICLE27_RULES, blankIngredient, normalise, AT, HTEXT, PICTO, catFromATE, num, fmt };
 });
