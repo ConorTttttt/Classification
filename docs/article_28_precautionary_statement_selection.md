@@ -1,6 +1,6 @@
 # Article 22 and Article 28 — precautionary statements (P-statements)
 
-**Implementation status:** Partial, auditable candidate selector and legal-obligation checks. **NOT a complete Annex IV eligibility database and NOT a final approved label.**
+**Implementation status:** Auditable candidate selector built on the complete Annex IV Part 1 table, with legal-obligation checks. **NOT a final approved label**: conditional statements, wording choices and the final selection need supplier review.
 
 ## Regulatory distinction: what is mandatory?
 
@@ -13,7 +13,7 @@ Regulation (EC) 1272/2008:
 
 **There is NOT a rule that every H-code has one universally mandatory individual P-code.** Annex IV identifies eligibility and conditions for statements, which need a product-specific selection. Some choices are only relevant for consumer products, e.g. P101/P102/P103, which are listed for consumer products **as appropriate**; these should not automatically be labelled "mandatory" for every consumer product.
 
-For disposal, **P501** is an eligible Annex IV Table 6.5 code for the hazard classes listed there. The **legal obligation is to convey appropriate disposal precautions**, not to universally mandate the literal code P501 for every formulation. For ozone hazards and certain explosives Annex IV has different disposal/recovery codes (e.g., P502/P503). If P501 is not eligible for a consumer mixture, the partial engine **flags a blocker for manual review**, rather than inventing P501.
+For disposal, **P501** is an eligible Annex IV Table 6.5 code for the hazard classes listed there. The **legal obligation is to convey appropriate disposal precautions**, not to universally mandate the literal code P501 for every formulation. For ozone hazards and certain explosives Annex IV has different disposal/recovery codes (e.g., P502/P503). P501, P502 or P503 satisfies the consumer disposal check where Annex IV lists it; if none is listed, the engine **flags a blocker for manual review** rather than inventing one.
 
 ## Current implementation
 
@@ -33,21 +33,41 @@ The draft proposed label includes up to six prioritised statements, and the **Ar
 
 `result.label.article28` contains: `selected`, `candidates`, `requiredObligations`, `review`, `uncovered`, `warnings`, `audience`, `excessCandidateCount`, `readyForFinalLabel:false` and `scope`. `result.label.precautionaryStatements` exposes the current draft selection. All underlying mixture classifications and Articles 26/27 decisions remain unchanged.
 
-### Scope of the first-pass candidate catalogue
+### Candidate source: the Annex IV Part 1 table
 
-`P28_RULES` contains a **curated sample of 21 P-codes**, including:
-- General consumer precautions P101, P102, P103
-- Prevention P210, P202, P260, P261, P273, P280
-- Response P301+P330+P331, P305+P351+P338, P303+P361+P353, P302+P352, P333+P313, P337+P313, P301+P310, P301+P312, P331, P304+P340, P308+P313
-- Disposal P501
+Candidates come from the full Annex IV Part 1 table (Tables 6.1–6.5, 129 statements), embedded in `verification/engine.js`
+by `verification/build_annex_iv.js` from `data/legal/` (see `data/legal/SOURCES.md`). Each statement keeps its hazard
+class, category and Annex IV "conditions for use":
 
-**The catalogue is NOT an exhaustive list of all relevant or eligible statements**. There are many more codes, hazard categories and conditions in the full Annex IV tables 6.1-6.5 and Annex I. No P statement from the limited catalogue should be interpreted as legally sufficient without reviewing the complete tables. The primary next task is to expand the P-statement mapping from an authoritative regulation-derived data table (ideally a versioned complete Annex I/IV mapping), then implement conflict/priority logic and confirm selected official wordings.
+- **Hazard class and category** are read from the outcome label, using the Annex VI Table 1.1 codes the calculator
+  already uses (`Acute Tox. 3 (dermal)`, `Org. Perox. CD`, `STOT SE 3 (narcotic effects)` …). Manual entries should use
+  these codes. With H-codes only, statements common to every class carrying that H-code are proposed; the rest are
+  held as **class to confirm** (H240–H242 organic peroxide vs self-reactive, H250 pyrophoric liquid vs solid, H261
+  water-reactive Category 2 vs 3).
+- **Conditional statements** ("— if the liquid is volatile and may generate an explosive atmosphere", "— if immediate
+  administration of antidote is required") are held as **condition pending** with the Annex IV condition quoted. Add
+  them as manual P-statements once confirmed. P273 stays a candidate with its intended-use review.
+- **Consumer-only statements** (P101, P102, P103, P201 for CMR) appear only for consumer supply.
+- **Combinations:** a single statement that the same hazard class lists inside one of its combinations is not proposed
+  (e.g. P310 for acute oral toxicity is carried by P301+P310), matching the Annex I label tables. Component clauses such
+  as "IF SWALLOWED:" are never proposed alone.
+- **ED, PBT/vPvB, PMT/vPvM** (Regulation (EU) 2023/707) have no Annex IV Part 1 rows; their statements come from Annex I
+  Tables 3.11.3, 4.2.3, 4.3.1 and 4.4.1.
+- **Disposal:** P501, or P502 (ozone) / P503 (explosives) where Annex IV lists those, meets the Article 28(2) consumer
+  disposal check.
+
+`verification/test_annex_iv_table.js` compares the candidates for every class/category with the statements listed in the
+Annex I label tables, an independent source, and records the known differences inside the consolidated text.
 
 ### Redundancy and six-statement policy
 
-Two explicitly documented Annex IV redundancies are supported:
-- **P103** may be omitted where **P202** is used.
-- **P261** may be omitted where **P260** is used.
+Annex IV "omit where … is used" / "may be omitted if/when … is given" conditions are applied as optional omissions
+(not for manually added statements): **P103** and **P201** where **P202** is used; **P261** where **P260** is given;
+**P332+P313** where **P333+P313** is given. When a selected single statement's wording also appears in a selected
+combination (e.g. P331 beside P301+P330+P331), an Article 28(1) review item asks whether it is clearly redundant.
+
+The draft order uses a priority per statement. Article 28 and Annex IV set no order, so this is a judgement: the 21
+statements of the earlier catalogue keep their priorities, others take a default per Annex IV table.
 
 The proposed list is capped at six for initial display. When more candidates qualify, the engine **does not claim** that the six priority-ranked suggestions are the right final choice; instead it issues an **Article 28(3) blocker** and preserves all alternatives. Additional statements may be needed for severity, and the label needs human review.
 
@@ -72,9 +92,10 @@ node verification/test_engine.js
 node verification/test_article26.js
 node verification/test_article28.js
 node verification/test_ui_structure.js
+node verification/test_annex_iv_table.js
 ```
 
-The Article 28 suite currently has 50 tests. It checks consumer disposal, applicability, unknown audience, wording placeholders, six-statement overflow, Annex IV redundancy, manual additions and exclusions, deduplication and report outputs. UI tests are **source checks**, not live-browser interaction tests.
+The Article 28 suite has 51 tests; `verification/test_annex_iv_table.js` adds the Annex I cross-check. It checks consumer disposal, applicability, unknown audience, wording placeholders, six-statement overflow, Annex IV redundancy, manual additions and exclusions, deduplication and report outputs. UI tests are **source checks**, not live-browser interaction tests.
 
 ## Primary legal references
 

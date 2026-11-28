@@ -85,9 +85,14 @@ const flagged=(r,frag)=>r.review.some(x=>x.reason.includes(frag));
  t('Manual P210 exclusion is audited with reason',cand(r,'P210').decision==='excluded'&&cand(r,'P210').decisionReason.includes('documented'));
 }
 {
+ // P203 is a later UN GHS code that is not in EU CLP Annex IV
+ const r=choose(['H225'],{audience:'professional',manualPExtra:'P203'});
+ t('Manual code outside Annex IV explicitly unverified',cand(r,'P203')?.manual&&r.warnings.some(x=>x.includes('no verified wording')));
+ t('Unverified manual P code blocks final approval',r.review.some(x=>x.code==='P203'&&x.severity==='blocker'));
+}
+{
  const r=choose(['H225'],{audience:'professional',manualPExtra:'P272'});
- t('Manual code outside partial catalogue explicitly unverified',cand(r,'P272')?.manual&&r.warnings.some(x=>x.includes('no verified wording')));
- t('Unverified manual P code blocks final approval',r.review.some(x=>x.code==='P272'&&x.severity==='blocker'));
+ t('Manual Annex IV code not eligible for the classification is flagged',cand(r,'P272')?.manual&&r.review.some(x=>x.code==='P272'&&x.reason.includes('does not match')));
 }
 {
  const r=choose(['H225'],{audience:'professional',manualPExtra:'P305 + P351 + P338'});
